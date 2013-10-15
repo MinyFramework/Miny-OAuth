@@ -123,7 +123,8 @@ class OAuthClient
      * @return Response
      * @throws UnexpectedValueException
      */
-    public function sendApiCall($url, $method, array $parameters, array $options, $process_response = true)
+    public function sendApiCall($url, $method = Client::METHOD_GET, array $parameters = array(),
+                                array $options = array(), $process_response = true)
     {
         $cert_file = isset($this->provider->certificate_file) ? $this->provider->certificate_file : null;
         $http = new Client($cert_file);
@@ -264,7 +265,8 @@ class OAuthClient
      * @param array $parameters
      * @param array $options
      */
-    public function call($url, $method, array $parameters, array $options = array(), $process_result = true)
+    public function call($url, $method = Client::METHOD_GET, array $parameters = array(), array $options = array(),
+                         $process_result = true)
     {
         $access_token = $this->retrieveAccessToken();
         if ($access_token == null) {
