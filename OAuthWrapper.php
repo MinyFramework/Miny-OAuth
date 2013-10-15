@@ -14,7 +14,6 @@ use OutOfBoundsException;
 use RuntimeException;
 
 /**
- *
  * This class is a wrapper that makes it simple to manage multiple remote OAuth providers.
  *
  * @author Dániel Buga
@@ -25,6 +24,10 @@ class OAuthWrapper
     private $clients = array();
     private $request;
 
+    /**
+     *
+     * @param \Miny\HTTP\Request $request
+     */
     public function __construct(Request $request)
     {
         $this->request = $request;
@@ -44,6 +47,11 @@ class OAuthWrapper
         $this->providers[$provider] = $pd;
     }
 
+    /**
+     *
+     * @param string $provider
+     * @throws RuntimeException
+     */
     public function unregisterProvider($provider)
     {
         if (!is_string($provider)) {

@@ -20,7 +20,7 @@ use UnexpectedValueException;
  */
 class AccessToken implements Serializable
 {
-    public static $default_access_token_type = ''; //? provider specific?
+    public static $default_access_token_type = '';
     public $access_token;
     public $refresh_token;
     public $expiry;
@@ -38,13 +38,14 @@ class AccessToken implements Serializable
     public static function fromResponse(Response $response, $authorized = true, $reused_refresh_token = null)
     {
         $data = $response->body;
-        if (!isset($data['access_token'])) {
-            throw new UnexpectedValueException('Data must contain an access_token.' . print_r($data, 1));
+        if (!isset($data['access_token']) || !isset($data['oauth_token'])) {
+            throw new UnexpectedValueException('Data must contain an access_token.');
         }
         $access_token = new AccessToken;
-        $access_token->access_token = $data['access_token'];
+        $access_token->access_token = isset($data['access_token']) ? $data['access_token'] : $data['oauth_token'];
         $access_token->authorized = $authorized;
 
+        //OAuth 2.0 style
         if (isset($data['expires']) || isset($data['expires_in'])) {
             $expires_str = isset($data['expires']) ? $data['expires'] : $data['expires_in'];
             $expires = intval($expires_str);
@@ -53,18 +54,6 @@ class AccessToken implements Serializable
                     $access_token->expiry = gmstrftime('%Y-%m-%d %H:%M:%S', time() + $expires);
                 }
             }
-        }
-        if (isset($data['oauth_expires']) || isset($data['oauth_expires_in'])) {
-            $expires_str = isset($data['oauth_expires']) ? $data['oauth_expires'] : $data['oauth_expires_in'];
-            $expires = intval($expires_str);
-            if ($expires == $expires_str) {
-                if ($expires > 0) {
-                    $access_token->expiry = gmstrftime('%Y-%m-%d %H:%M:%S', time() + $expires);
-                }
-            }
-        }
-        if(isset($data['oauth_token_secret'])) {
-            $access_token->secret = $data['secret'];
         }
         if (isset($data['token_type'])) {
             $access_token->type = $data['token_type'];
@@ -76,10 +65,28 @@ class AccessToken implements Serializable
         } elseif (isset($reused_refresh_token)) {
             $access_token->refresh_token = $reused_refresh_token;
         }
+
+        //OAuth 1.0 style
+        if (isset($data['oauth_expires']) || isset($data['oauth_expires_in'])) {
+            $expires_str = isset($data['oauth_expires']) ? $data['oauth_expires'] : $data['oauth_expires_in'];
+            $expires = intval($expires_str);
+            if ($expires == $expires_str) {
+                if ($expires > 0) {
+                    $access_token->expiry = gmstrftime('%Y-%m-%d %H:%M:%S', time() + $expires);
+                }
+            }
+        }
+        if (isset($data['oauth_token_secret'])) {
+            $access_token->secret = $data['secret'];
+        }
         return $access_token;
     }
 
     //Serializable interface
+    /**
+     *
+     * @return string
+     */
     public function serialize()
     {
         return serialize(array(
@@ -91,6 +98,10 @@ class AccessToken implements Serializable
         ));
     }
 
+    /**
+     *
+     * @param string $serialized
+     */
     public function unserialize($serialized)
     {
         $array = unserialize($serialized);
@@ -102,6 +113,10 @@ class AccessToken implements Serializable
         $this->type = $array['type'];
     }
 
+    /**
+     *
+     * @return string
+     */
     public function __toString()
     {
         return $this->access_token;

@@ -84,6 +84,12 @@ class OAuthClient
         return $this->provider->getUrl($name, $path, $options, $parameters);
     }
 
+    /**
+     *
+     * @param string $name
+     * @return string|null
+     * @throws UnexpectedValueException
+     */
     protected function getRequestVar($name)
     {
         $allowed = array('code', 'error', 'state', 'oauth_token', 'oauth_verifier', 'denied');
@@ -94,6 +100,10 @@ class OAuthClient
         return isset($this->request->get[$name]) ? $this->request->get[$name] : null;
     }
 
+    /**
+     *
+     * @return string
+     */
     protected function getStoredState()
     {
         $storage = $this->provider->getStorage();
@@ -295,6 +305,9 @@ class OAuthClient
         $this->access_token = $token;
     }
 
+    /**
+     * Resets the saved access token.
+     */
     public function resetAccessToken()
     {
         $storage = $this->provider->getStorage();
@@ -318,13 +331,17 @@ class OAuthClient
         return $this->access_token;
     }
 
+    /**
+     *
+     * @return string|null
+     */
     protected function getStoredRefreshToken()
     {
         $access_token = $this->retrieveAccessToken();
-        if ($access_token != null) {
-            return $access_token->refresh_token;
+        if ($access_token == null) {
+            return null;
         }
-        return null;
+        return $access_token->refresh_token;
     }
 
     /**
@@ -365,6 +382,9 @@ class OAuthClient
         $this->processTokenRequest($values);
     }
 
+    /**
+     * Refresh an access token
+     */
     public function refreshToken()
     {
         $values = array(
@@ -384,7 +404,6 @@ class OAuthClient
         return Utils::encode('http://' . $_SERVER['HTTP_HOST'] . $this->request->path);
     }
 
-    //TODO: not yet working
     private function processOAuth1()
     {
         $one_a = ($this->provider->version === '1.0a');
@@ -487,6 +506,10 @@ class OAuthClient
         }
     }
 
+    /**
+     * Interact with the OAuth provider.
+     * This function redirects the user to the service provider and request an access token.
+     */
     public function process()
     {
         $version = $this->provider->version;

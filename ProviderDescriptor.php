@@ -19,10 +19,6 @@ use UnexpectedValueException;
 /**
  * This class is a simple descriptor class that holds information about
  * an OAuth server.
- * The class implements a method that won't enable to modify the class' properties
- * after they have been set.
- *
- * TODO: storage interface
  *
  * @author Dániel Buga
  */
