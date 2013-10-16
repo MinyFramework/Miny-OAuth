@@ -58,6 +58,7 @@ class Utils
     {
         Header('HTTP/1.0 302 OAuth Redirection');
         Header('Location: ' . $url);
+        exit;
     }
 
     /**

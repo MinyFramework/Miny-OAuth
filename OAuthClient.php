@@ -352,10 +352,10 @@ class OAuthClient
      */
     public function processTokenRequest(array $values = array())
     {
-        $access_token_url = $this->provider->getUrl('access_token', '', $values);
+        $access_token_url = $this->provider->getUrl('access_token', '', array(), $values);
         $http_response = $this->sendApiCall($access_token_url, Client::METHOD_POST, $values, array());
         //TODO: error check based on response code
-        $token = AccessToken::fromResponse($http_response, $this->getStoredRefreshToken());
+        $token = AccessToken::fromResponse($http_response, true, $this->getStoredRefreshToken());
         $this->storeAccessToken($token);
     }
 

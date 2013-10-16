@@ -38,7 +38,7 @@ class AccessToken implements Serializable
     public static function fromResponse(Response $response, $authorized = true, $reused_refresh_token = null)
     {
         $data = $response->body;
-        if (!isset($data['access_token']) || !isset($data['oauth_token'])) {
+        if (!isset($data['access_token']) && !isset($data['oauth_token'])) {
             throw new UnexpectedValueException('Data must contain an access_token.');
         }
         $access_token = new AccessToken;
@@ -94,7 +94,8 @@ class AccessToken implements Serializable
             'authorized'    => $this->authorized,
             'expiry'        => $this->expiry,
             'refresh_token' => $this->refresh_token,
-            'type'          => $this->type
+            'type'          => $this->type,
+            'secret'        => $this->secret
         ));
     }
 
@@ -111,6 +112,7 @@ class AccessToken implements Serializable
         $this->expiry = $array['expiry'];
         $this->refresh_token = $array['refresh_token'];
         $this->type = $array['type'];
+        $this->secret = $array['secret'];
     }
 
     /**
