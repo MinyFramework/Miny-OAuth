@@ -268,7 +268,7 @@ class OAuthClient
     public function call($url, $method = Client::METHOD_GET, array $parameters = array(), array $options = array(),
                          $process_result = true)
     {
-        $access_token = $this->retrieveAccessToken();
+        $access_token = $this->getAccessToken();
         if ($access_token == null) {
             throw new UnexpectedValueException('Access token is not set.');
         }
@@ -321,7 +321,7 @@ class OAuthClient
      *
      * @return null|AccessToken
      */
-    public function retrieveAccessToken()
+    public function getAccessToken()
     {
         if (!isset($this->access_token)) {
             $storage = $this->provider->getStorage();
@@ -339,7 +339,7 @@ class OAuthClient
      */
     protected function getStoredRefreshToken()
     {
-        $access_token = $this->retrieveAccessToken();
+        $access_token = $this->getAccessToken();
         if ($access_token == null) {
             return null;
         }
@@ -409,7 +409,7 @@ class OAuthClient
     private function processOAuth1()
     {
         $one_a = ($this->provider->version === '1.0a');
-        $access_token = $this->retrieveAccessToken();
+        $access_token = $this->getAccessToken();
         if ($access_token instanceof AccessToken) {
             $expired = strcmp($access_token->expiry, gmstrftime('%Y-%m-%d %H:%M:%S')) <= 0;
             if (!$access_token->authorized || $expired) {
@@ -469,7 +469,7 @@ class OAuthClient
 
     private function processOAuth2()
     {
-        $token = $this->retrieveAccessToken();
+        $token = $this->getAccessToken();
         if ($token instanceof AccessToken && $token->authorized) {
             return true; //we already have a token, so stop here
         }
