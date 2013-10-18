@@ -230,7 +230,7 @@ class OAuthClient
         $http->setRequestMethod($method);
         $http->addPostFields($post_values);
 
-        if (!isset($authorization)) {
+        if (!isset($authorization) && $this->access_token instanceof AccessToken) {
             if (strcasecmp($this->access_token->type, 'bearer') == 0) {
                 $authorization = 'Bearer ' . $authorization;
             }
