@@ -99,7 +99,7 @@ class Utils
             }
             return $value;
         } else {
-            return Utils::replaceString($value,
+            return Utils::replaceString(rawurlencode($value),
                             array(
                         '%7E' => '~',
                         '+'   => ' '
