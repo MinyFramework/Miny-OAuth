@@ -179,7 +179,10 @@ class OAuthClient
                 }
             }
 
-            $key = Utils::encode($this->provider->client_secret) . '&' . Utils::encode($this->access_token->secret);
+            $key = Utils::encode($this->provider->client_secret) . '&';
+            if (isset($this->access_token)) {
+                $key .= Utils::encode($this->access_token->secret);
+            }
             switch ($this->provider->signature_method) {
                 case self::SIGNATURE_PLAINTEXT:
                     $values['oauth_signature'] = $key;
@@ -189,7 +192,7 @@ class OAuthClient
                         throw new RuntimeException('SHA1 is not supported by the Hash extension');
                     }
                     $uri = strtok($url, '?');
-                    $sign = $method . '&' . Utils::encode($uri);
+                    $sign = strtoupper($method) . '&' . Utils::encode($uri) . '&';
                     $sign_values = $values;
                     $u = parse_url($url, PHP_URL_QUERY);
                     if (isset($u)) {
@@ -200,7 +203,7 @@ class OAuthClient
                         }
                     }
                     ksort($sign_values);
-                    $sign = Utils::addURLParams($sign, $sign_values);
+                    $sign .= Utils::encode(http_build_query($sign_values, '', '&', PHP_QUERY_RFC3986));
                     $values['oauth_signature'] = base64_encode(hash_hmac('sha1', $sign, $key, true));
                     break;
                 default:
@@ -213,7 +216,7 @@ class OAuthClient
                 $separator = ' ';
                 foreach ($values as $parameter => $value) {
                     $authorization .= $separator . $parameter . '="' . Utils::encode($value) . '"';
-                    $separator = ',';
+                    $separator = ', ';
                 }
             } else {
                 $post_values_in_uri = isset($options['post_values_in_uri']) && $options['post_values_in_uri'];
@@ -240,7 +243,6 @@ class OAuthClient
         }
         $http->addHeader('Content-Type: ' . $type);
 
-        //die(print_r($http, 1));
         $response = $http->send();
         if ($response->status_code < 200 || $response->status_code >= 300) {
             $message = sprintf('An error has occured. The error code is %d and the message is "%s". More information: %s',
@@ -403,7 +405,7 @@ class OAuthClient
 
     private function getRedirectUri()
     {
-        return Utils::encode('http://' . $_SERVER['HTTP_HOST'] . $this->request->path);
+        return 'http://' . $_SERVER['HTTP_HOST'] . $this->request->path;
     }
 
     private function processOAuth1()
@@ -411,7 +413,9 @@ class OAuthClient
         $one_a = ($this->provider->version === '1.0a');
         $access_token = $this->getAccessToken();
         if ($access_token instanceof AccessToken) {
-            $expired = strcmp($access_token->expiry, gmstrftime('%Y-%m-%d %H:%M:%S')) <= 0;
+            if (isset($access_token->expiry)) {
+                $expired = strcmp($access_token->expiry, gmstrftime('%Y-%m-%d %H:%M:%S')) <= 0;
+            }
             if (!$access_token->authorized || $expired) {
 
                 $token = $this->getRequestVar('oauth_token');
@@ -437,7 +441,6 @@ class OAuthClient
                     $method = strtoupper($this->provider->token_request_method);
                     $response = $this->sendApiCall($url, $method, array(), $options, true);
                     $access_token = AccessToken::fromResponse($response);
-
                     $this->StoreAccessToken($access_token);
                 }
             }
@@ -463,7 +466,7 @@ class OAuthClient
         if (!$one_a) {
             $url_options['oauth_callback'] = $this->getRedirectUri();
         }
-        $url = $this->provider->getURL('dialog', '', $url_options);
+        $url = $this->provider->getURL('dialog', '', array(), $url_options);
         Utils::redirect($url);
     }
 

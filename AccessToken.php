@@ -77,7 +77,7 @@ class AccessToken implements Serializable
             }
         }
         if (isset($data['oauth_token_secret'])) {
-            $access_token->secret = $data['secret'];
+            $access_token->secret = $data['oauth_token_secret'];
         }
         return $access_token;
     }

@@ -50,11 +50,12 @@ class Response
         $this->response_reason = $reason;
         $this->headers = array();
         foreach ($headers as $header) {
+            $header = strtolower($header);
             list($name, $info) = explode(':', $header, 2);
             if (!isset($this->headers[$name])) {
                 $this->headers[$name] = trim($info);
             } else {
-                if(!is_array($this->headers[$name])) {
+                if (!is_array($this->headers[$name])) {
                     $this->headers[$name] = array($this->headers[$name]);
                 }
                 $this->headers[$name][] = trim($info);
@@ -82,6 +83,7 @@ class Response
                 }
             case 'application/x-www-form-urlencoded':
             case 'text/plain':
+            case 'text/html':
                 $response = array();
                 parse_str($this->body, $response);
                 return $response;
@@ -130,11 +132,13 @@ class Response
 
     public function hasHeader($header)
     {
+        $header = strtolower($header);
         return isset($this->headers[$header]);
     }
 
     public function getHeader($header)
     {
+        $header = strtolower($header);
         if (!isset($this->headers[$header])) {
             throw new \OutOfBoundsException('Header not set: ' . $header);
         }
