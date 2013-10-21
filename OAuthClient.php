@@ -415,6 +415,8 @@ class OAuthClient
         if ($access_token instanceof AccessToken) {
             if (isset($access_token->expiry)) {
                 $expired = strcmp($access_token->expiry, gmstrftime('%Y-%m-%d %H:%M:%S')) <= 0;
+            } else {
+                $expired = false;
             }
             if (!$access_token->authorized || $expired) {
 
