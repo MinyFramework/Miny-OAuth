@@ -20,13 +20,23 @@ use RuntimeException;
  */
 class OAuthWrapper
 {
+    /**
+     * @var array
+     */
     private $providers = array();
+
+    /**
+     * @var array
+     */
     private $clients = array();
+
+    /**
+     * @var Request
+     */
     private $request;
 
     /**
-     *
-     * @param \Miny\HTTP\Request $request
+     * @param Request $request
      */
     public function __construct(Request $request)
     {
@@ -34,10 +44,10 @@ class OAuthWrapper
     }
 
     /**
-     *
      * @param string $provider The alias of the provider.
-     * @param \Modules\OAuth\Client\ProviderDescriptor $pd
+     * @param ProviderDescriptor $pd
      * @throws RuntimeException
+     * @return OAuthClient
      */
     public function registerProvider($provider, ProviderDescriptor $pd)
     {
@@ -45,10 +55,10 @@ class OAuthWrapper
             throw new RuntimeException('Parameter "provider" must be of string type.');
         }
         $this->providers[$provider] = $pd;
+        return $this->getOAuthObject($provider);
     }
 
     /**
-     *
      * @param string $provider
      * @throws RuntimeException
      */
@@ -61,7 +71,6 @@ class OAuthWrapper
     }
 
     /**
-     *
      * @param string $provider
      * @return OAuthClient
      * @throws OutOfBoundsException
