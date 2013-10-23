@@ -20,6 +20,7 @@ use UnexpectedValueException;
  */
 class Response
 {
+    private $raw_response;
     private $version;
     private $status_code;
     private $response_reason;
@@ -32,6 +33,7 @@ class Response
 
     public function __construct($result)
     {
+        $this->raw_response = $result;
         $this->processMeta($result);
     }
 
@@ -115,7 +117,7 @@ class Response
 
     public function __toString()
     {
-        return $this->result_string;
+        return $this->raw_response;
     }
 
     public function __get($key)

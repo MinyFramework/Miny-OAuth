@@ -19,9 +19,20 @@ use Miny\Session\Session;
  */
 class SessionStorage implements iPersistentStorage
 {
+    /**
+     * @var Session
+     */
     private $session;
+
+    /**
+     * @var string
+     */
     private $provider_name;
 
+    /**
+     * @param string $provider_name
+     * @param Session $session
+     */
     public function __construct($provider_name, Session $session)
     {
         if (!isset($session['oauth'])) {
@@ -44,7 +55,7 @@ class SessionStorage implements iPersistentStorage
 
     public function __isset($key)
     {
-        if(isset($this->session['oauth'][$this->provider_name])) {
+        if (isset($this->session['oauth'][$this->provider_name])) {
             return isset($this->session['oauth'][$this->provider_name][$key]);
         }
         return false;
@@ -61,4 +72,3 @@ class SessionStorage implements iPersistentStorage
     }
 
 }
-
