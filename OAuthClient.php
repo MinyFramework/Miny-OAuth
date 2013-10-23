@@ -38,7 +38,7 @@ class OAuthClient
 
     /**
      *
-     * @var \Modules\OAuth\ProviderDescriptor
+     * @var ProviderDescriptor
      */
     private $provider;
 
@@ -50,7 +50,7 @@ class OAuthClient
 
     /**
      *
-     * @var \Modules\OAuth\AccessToken
+     * @var AccessToken
      */
     private $access_token;
 
@@ -62,7 +62,7 @@ class OAuthClient
 
     /**
      *
-     * @param \Modules\OAuth\ProviderDescriptor $pd
+     * @param ProviderDescriptor $pd
      * @param Request $request
      */
     public function __construct(ProviderDescriptor $pd, Request $request)
@@ -124,7 +124,7 @@ class OAuthClient
      * @throws UnexpectedValueException
      */
     public function sendApiCall($url, $method = Client::METHOD_GET, array $parameters = array(),
-                                array $options = array(), $process_response = true)
+                                array $options = array())
     {
         $cert_file = isset($this->provider->certificate_file) ? $this->provider->certificate_file : null;
         $http = new Client($cert_file);
@@ -249,14 +249,6 @@ class OAuthClient
                     $response->status_code, $response->response_reason, print_r($response, 1));
             throw new UnexpectedValueException($message);
         }
-        if ($process_response) {
-            if (isset($this->provider->http_response_processing_callback)) {
-                $callback = $this->provider->http_response_processing_callback;
-            } else {
-                $callback = null;
-            }
-            $response->processBody($this->provider->http_response_processing_type, $callback);
-        }
         return $response;
     }
 
@@ -267,8 +259,7 @@ class OAuthClient
      * @param array $parameters
      * @param array $options
      */
-    public function call($url, $method = Client::METHOD_GET, array $parameters = array(), array $options = array(),
-                         $process_result = true)
+    public function call($url, $method = Client::METHOD_GET, array $parameters = array(), array $options = array())
     {
         $access_token = $this->getAccessToken();
         if ($access_token == null) {
@@ -295,7 +286,7 @@ class OAuthClient
             default:
                 $this->versionNotSupported($version);
         }
-        return $this->sendApiCall($url, $method, $parameters, $options, $process_result);
+        return $this->sendApiCall($url, $method, $parameters, $options);
     }
 
     /**
@@ -348,6 +339,14 @@ class OAuthClient
         return $access_token->refresh_token;
     }
 
+    public function processResponse(Response $http_response, $callback = NULL)
+    {
+        if (isset($this->provider->http_response_processing_callback)) {
+            $callback = $this->provider->http_response_processing_callback;
+        }
+        return $http_response->processBody($this->provider->http_response_processing_type, $callback);
+    }
+
     /**
      *
      * @param array $values
@@ -357,6 +356,9 @@ class OAuthClient
         $access_token_url = $this->provider->getUrl('access_token', '', array(), $values);
         $http_response = $this->sendApiCall($access_token_url, Client::METHOD_POST, $values, array());
         //TODO: error check based on response code
+
+        $this->processResponse($http_response);
+
         $token = AccessToken::fromResponse($http_response, true, $this->getStoredRefreshToken());
         $this->storeAccessToken($token);
     }
@@ -441,7 +443,9 @@ class OAuthClient
                         $options['oauth_verifier'] = $verifier;
                     }
                     $method = strtoupper($this->provider->token_request_method);
-                    $response = $this->sendApiCall($url, $method, array(), $options, true);
+                    $response = $this->sendApiCall($url, $method, array(), $options);
+
+                    $this->processResponse($response);
                     $access_token = AccessToken::fromResponse($response);
                     $this->StoreAccessToken($access_token);
                 }
@@ -460,7 +464,9 @@ class OAuthClient
                 'oauth_callback' => $this->getRedirectUri()
             );
             $method = strtoupper($this->provider->token_request_method);
-            $response = $this->sendApiCall($url, $method, array(), $options, true);
+            $response = $this->sendApiCall($url, $method, array(), $options);
+
+            $this->processResponse($response);
             $access_token = AccessToken::fromResponse($response, false);
             $this->storeAccessToken($access_token);
         }
