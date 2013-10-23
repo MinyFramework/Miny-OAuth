@@ -101,7 +101,6 @@ class OAuthClient
     }
 
     /**
-     *
      * @return string
      */
     protected function getStoredState()
@@ -109,8 +108,12 @@ class OAuthClient
         $storage = $this->provider->getStorage();
         if (!isset($storage->oauth_state)) {
             $storage->oauth_state = md5(time() . rand());
+            return $storage->oauth_state;
+        } else {
+            $state = $storage->oauth_state;
+            unset($storage->oauth_state);
+            return $state;
         }
-        return $storage->oauth_state;
     }
 
     /**
