@@ -78,9 +78,8 @@ class Response
                 $obj = json_decode($this->body);
                 switch (gettype($obj)) {
                     case 'object':
-                        return Utils::convertObjectToArray($obj);
                     case 'array':
-                        return $obj;
+                        return Utils::convertObjectToArray($obj);
                     default:
                         throw new UnexpectedValueException('Invalid JSON response.');
                 }
