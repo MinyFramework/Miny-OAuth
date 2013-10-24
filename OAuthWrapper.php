@@ -10,6 +10,7 @@
 namespace Modules\OAuth;
 
 use Miny\HTTP\Request;
+use Miny\Log;
 use OutOfBoundsException;
 use RuntimeException;
 
@@ -36,11 +37,17 @@ class OAuthWrapper
     private $request;
 
     /**
+     * @var Log
+     */
+    private $log;
+
+    /**
      * @param Request $request
      */
-    public function __construct(Request $request)
+    public function __construct(Request $request, Log $log = NULL)
     {
         $this->request = $request;
+        $this->log = $log;
     }
 
     /**
@@ -84,7 +91,7 @@ class OAuthWrapper
             throw new OutOfBoundsException(sprintf('Provider "%s" is not set', $provider));
         }
         if (!isset($this->clients[$provider])) {
-            $this->clients[$provider] = new OAuthClient($this->providers[$provider], $this->request);
+            $this->clients[$provider] = new OAuthClient($this->providers[$provider], $this->request, $this->log);
         }
         return $this->clients[$provider];
     }

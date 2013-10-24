@@ -16,7 +16,7 @@ class Module extends \Miny\Application\Module
     public function init(Application $app)
     {
         $app->add('oauth', __NAMESPACE__.'\OAuthWrapper')
-            ->setArguments('&request');
+            ->setArguments('&request', '&log');
     }
 
 }

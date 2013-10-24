@@ -39,7 +39,8 @@ class AccessToken implements Serializable
     {
         $data = $response->body;
         if (!isset($data['access_token']) && !isset($data['oauth_token'])) {
-            throw new UnexpectedValueException('Data must contain an access_token.');
+            $message = 'Data must contain an access_token.';
+            throw new Exceptions\OAuthException ($message, $data);
         }
         $access_token = new AccessToken;
         $access_token->access_token = isset($data['access_token']) ? $data['access_token'] : $data['oauth_token'];

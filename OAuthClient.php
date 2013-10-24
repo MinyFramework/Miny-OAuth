@@ -12,6 +12,8 @@ namespace Modules\OAuth;
 use Exception;
 use InvalidArgumentException;
 use Miny\HTTP\Request;
+use Miny\Log;
+use Modules\OAuth\Exceptions\OAuthException;
 use Modules\OAuth\HTTP\Client;
 use Modules\OAuth\HTTP\Response;
 use OutOfBoundsException;
@@ -50,6 +52,12 @@ class OAuthClient
 
     /**
      *
+     * @var Log
+     */
+    private $log;
+
+    /**
+     *
      * @var AccessToken
      */
     private $access_token;
@@ -65,10 +73,18 @@ class OAuthClient
      * @param ProviderDescriptor $pd
      * @param Request $request
      */
-    public function __construct(ProviderDescriptor $pd, Request $request)
+    public function __construct(ProviderDescriptor $pd, Request $request, Log $log = NULL)
     {
         $this->provider = $pd;
         $this->request = $request;
+        $this->log = $log;
+    }
+
+    protected function log($message)
+    {
+        if (isset($this->log)) {
+            $this->log->write('OAuth: ' . $message, Log::DEBUG);
+        }
     }
 
     /**
@@ -107,13 +123,21 @@ class OAuthClient
     {
         $storage = $this->provider->getStorage();
         if (!isset($storage->oauth_state)) {
-            $storage->oauth_state = md5(time() . rand());
-            return $storage->oauth_state;
+            $state = md5(time() . rand());
+
+            $message = sprintf('Setting stored state: %s', $state);
+            $this->log($message);
+
+            $storage->oauth_state = $state;
         } else {
             $state = $storage->oauth_state;
+
+            $message = sprintf('Stored state: %s', $state);
+            $this->log($message);
+
             unset($storage->oauth_state);
-            return $state;
         }
+        return $state;
     }
 
     /**
@@ -131,6 +155,9 @@ class OAuthClient
     {
         $cert_file = isset($this->provider->certificate_file) ? $this->provider->certificate_file : null;
         $http = new Client($cert_file);
+
+        $message = sprintf('Sending API call to [%s] %s', $method, $url);
+        $this->log($message);
 
         $version = $this->provider->version;
         if (isset($options['request_content_type'])) {
@@ -186,6 +213,9 @@ class OAuthClient
             if (isset($this->access_token)) {
                 $key .= Utils::encode($this->access_token->secret);
             }
+            $this->log('Signing method: ' . $this->provider->signature_method);
+            $this->log('Signature key: ' . $key);
+
             switch ($this->provider->signature_method) {
                 case self::SIGNATURE_PLAINTEXT:
                     $values['oauth_signature'] = $key;
@@ -195,7 +225,7 @@ class OAuthClient
                         throw new RuntimeException('SHA1 is not supported by the Hash extension');
                     }
                     $uri = strtok($url, '?');
-                    $sign = strtoupper($method) . '&' . Utils::encode($uri) . '&';
+                    $base_str = strtoupper($method) . '&' . Utils::encode($uri) . '&';
                     $sign_values = $values;
                     $u = parse_url($url, PHP_URL_QUERY);
                     if (isset($u)) {
@@ -206,13 +236,17 @@ class OAuthClient
                         }
                     }
                     ksort($sign_values);
-                    $sign .= Utils::encode(http_build_query($sign_values, '', '&', PHP_QUERY_RFC3986));
-                    $values['oauth_signature'] = base64_encode(hash_hmac('sha1', $sign, $key, true));
+                    $base_str .= Utils::encode(http_build_query($sign_values, '', '&', PHP_QUERY_RFC3986));
+
+                    $this->log('Signature base string: ' . $base_str);
+
+                    $values['oauth_signature'] = base64_encode(hash_hmac('sha1', $base_str, $key, true));
                     break;
                 default:
                     $message = sprintf('Signature method "%s" is not supported.', $this->provider->signature_method);
                     throw new UnexpectedValueException($message);
             }
+            $this->log('Signature: ' . $values['oauth_signature']);
             ksort($values);
             if ($this->provider->authorization_header) {
                 $authorization = 'OAuth';
@@ -242,23 +276,27 @@ class OAuthClient
             }
         }
         if (isset($authorization)) {
+            $this->log('Authorization header: ' . $authorization);
             $http->addHeader('Authorization: ' . $authorization);
         }
+        $this->log('Content type: ' . $type);
         $http->addHeader('Content-Type: ' . $type);
 
         $response = $http->send();
+        $this->log(sprintf('Response status: [%s] %s', $response->status_code, $response->response_reason));
         if ($response->status_code < 200 || $response->status_code >= 300) {
-            $message = sprintf('An error has occured. The error code is %d and the message is "%s". More information: %s',
-                    $response->status_code, $response->response_reason, print_r($response, 1));
-            throw new UnexpectedValueException($message);
+            $message = sprintf('An error has occured. The error code is %d and the message is "%s"',
+                    $response->status_code, $response->response_reason);
+            $details = $this->processResponse($response);
+            throw new OAuthException($message, $details);
         }
         return $response;
     }
 
     /**
      *
-     * @param type $url
-     * @param type $method
+     * @param string $url
+     * @param string $method
      * @param array $parameters
      * @param array $options
      */
@@ -276,6 +314,7 @@ class OAuthClient
             case 2:
                 if (strcmp($access_token->expiry, gmstrftime('%Y-%m-%d %H:%M:%S')) <= 0) {
                     //access token is expired
+                    $this->log('Access token is expired. Refreshing');
                     if (!isset($access_token->refresh_token)) {
                         throw new RuntimeException('Access token has expired but no refresh token is set.');
                     }
@@ -299,6 +338,7 @@ class OAuthClient
     public function storeAccessToken(AccessToken $token)
     {
         $storage = $this->provider->getStorage();
+        $this->log('Storing acces token: ' . $this->access_token);
         $storage->access_token = $token;
         $this->access_token = $token;
     }
@@ -309,6 +349,7 @@ class OAuthClient
     public function resetAccessToken()
     {
         $storage = $this->provider->getStorage();
+        $this->log('Resetting stored acces token.');
         unset($storage->access_token);
         unset($this->access_token);
     }
@@ -325,26 +366,14 @@ class OAuthClient
                 return null;
             }
             $this->access_token = $storage->access_token;
+            $this->log('Retrieving stored acces token: ' . $this->access_token);
         }
         return $this->access_token;
     }
 
-    /**
-     *
-     * @return string|null
-     */
-    protected function getStoredRefreshToken()
-    {
-        $access_token = $this->getAccessToken();
-        if ($access_token == null) {
-            return null;
-        }
-        return $access_token->refresh_token;
-    }
-
     public function processResponse(Response $http_response, $callback = NULL)
     {
-        if (isset($this->provider->http_response_processing_callback)) {
+        if (isset($this->provider->http_response_processing_callback) && $callback == NULL) {
             $callback = $this->provider->http_response_processing_callback;
         }
         return $http_response->processBody($this->provider->http_response_processing_type, $callback);
@@ -356,19 +385,26 @@ class OAuthClient
      */
     public function processTokenRequest(array $values = array())
     {
+        $this->log('Processing access token request. Parameters: ' . print_r($values, 1));
         $access_token_url = $this->provider->getUrl('access_token', '', array(), $values);
         $http_response = $this->sendApiCall($access_token_url, Client::METHOD_POST, $values, array());
-        //TODO: error check based on response code
 
         $this->processResponse($http_response);
 
-        $token = AccessToken::fromResponse($http_response, true, $this->getStoredRefreshToken());
+        $old_access_token = $this->getAccessToken();
+        if ($old_access_token == null) {
+            $stored_refresh_token = null;
+        } else {
+            $stored_refresh_token = $old_access_token->refresh_token;
+        }
+
+        $token = AccessToken::fromResponse($http_response, true, $stored_refresh_token);
         $this->storeAccessToken($token);
     }
 
     /**
      * Fetches an access token from the remote provider.
-     * @param type $access_code
+     * @param string $access_code
      */
     public function fetchAccessToken($access_code)
     {
@@ -408,6 +444,9 @@ class OAuthClient
         $this->processTokenRequest($values);
     }
 
+    /**
+     * @return string
+     */
     private function getRedirectUri()
     {
         return 'http://' . $_SERVER['HTTP_HOST'] . $this->request->path;
@@ -416,6 +455,7 @@ class OAuthClient
     private function processOAuth1()
     {
         $one_a = ($this->provider->version === '1.0a');
+        $this->log('Initializing OAuth ' . ($one_a) ? '1.0a' : '1.0');
         $access_token = $this->getAccessToken();
         if ($access_token instanceof AccessToken) {
             if (isset($access_token->expiry)) {
@@ -424,6 +464,7 @@ class OAuthClient
                 $expired = false;
             }
             if (!$access_token->authorized || $expired) {
+                $this->log('The stored access token is not authorized.');
 
                 $token = $this->getRequestVar('oauth_token');
                 $verifier = $this->getRequestVar('oauth_verifier');
@@ -433,16 +474,22 @@ class OAuthClient
                     if (isset($denied) && $denied === $access_token->access_token) {
                         throw new UnexpectedValueException('The access token was denied.');
                     } else {
+                        $this->log('The request does not include a token or verifier.');
+                        $this->log('Creating an empty access token.');
                         $access_token = new AccessToken();
                     }
                 } elseif ($token !== $access_token->access_token) {
+                    $this->log('The token contained in the request does not match the stored token.');
+                    $this->log('Creating an empty access token.');
                     $access_token = new AccessToken();
                 } else {
+                    $this->log('Exchanging the request token for an access token.');
                     $url = $this->provider->getUrl('access_token');
                     $options = array(
                         'oauth_token' => (string) $token,
                     );
                     if ($one_a) {
+                        $this->log('Token verifier: ' . $verifier);
                         $options['oauth_verifier'] = $verifier;
                     }
                     $method = strtoupper($this->provider->token_request_method);
@@ -455,13 +502,26 @@ class OAuthClient
             }
             //we're authorized
             if ($access_token->authorized) {
-                return true;
+                $this->log('The access token is authorized.');
+                return;
             }
         } else {
             //access_token was null
+            $this->log('No access token was stored.');
+            $this->log('Creating an empty access token.');
             $access_token = new AccessToken();
         }
         if (!$access_token->authorized) {
+            $this->log('The access token is a newly created empty token.');
+            $this->log('Request an access token.');
+            if (isset($this->scope)) {
+                if (is_array($this->scope)) {
+                    $values['scope'] = impolode(',', $this->scope);
+                } else {
+                    $values['scope'] = $this->scope;
+                }
+                $this->log('Access token scope: ' . $values['scope']);
+            }
             $url = $this->provider->getUrl('request_token', '', array('scope' => $this->scope));
             $options = array(
                 'oauth_callback' => $this->getRedirectUri()
@@ -477,24 +537,28 @@ class OAuthClient
         if (!$one_a) {
             $url_options['oauth_callback'] = $this->getRedirectUri();
         }
+        $this->log('Sending access token to be authorized by user.');
         $url = $this->provider->getURL('dialog', '', array(), $url_options);
+
+        $this->log('Redirecting to ' . $url);
         Utils::redirect($url);
     }
 
     private function processOAuth2()
     {
+        $this->log('Initializing OAuth 2.0');
         $token = $this->getAccessToken();
         if ($token instanceof AccessToken && $token->authorized) {
-            return true; //we already have a token, so stop here
+            $this->log('An authorized access token is set.');
+            return; //we already have a token, so stop here
         }
         $stored_state = $this->getStoredState();
-        if (strlen($stored_state) == 0) {
-            throw new RuntimeException('No stored state was set.');
-        }
         $state = $this->getRequestVar('state');
         if ($state === $stored_state) {
+            $this->log('Request state matches the stored state.');
             $code = $this->getRequestVar('code');
             if (empty($code)) {
+                $this->log('Access code is empty.');
                 $error = $this->getRequestVar('error');
                 if ($error != null) {
                     $message = sprintf('An error has occured. The error received id "%s"', $error);
@@ -507,17 +571,21 @@ class OAuthClient
                 'state'        => $stored_state,
                 'redirect_uri' => $this->getRedirectUri()
             );
+            $this->log('Request state does not match the stored state.');
+            $this->log('Request a new access code.');
             if (isset($this->scope)) {
                 if (is_array($this->scope)) {
                     $values['scope'] = impolode(',', $this->scope);
                 } else {
                     $values['scope'] = $this->scope;
                 }
+                $this->log('Access token scope: ' . $values['scope']);
             }
             $dialog_url = $this->provider->getUrl('dialog', '', $values);
 
             //TODO: properly handle redirections using Miny's methods.
             //That way we won't interrupt the normal process.
+            $this->log('Redirecting to ' . $dialog_url);
             Utils::redirect($dialog_url);
         }
     }
@@ -544,6 +612,7 @@ class OAuthClient
     private function versionNotSupported($version)
     {
         $message = sprintf('OAuth %s is not supported.', $version);
+        $this->log($message);
         throw new UnexpectedValueException($message);
     }
 

@@ -10,6 +10,7 @@
 namespace Modules\OAuth\HTTP;
 
 use Modules\OAuth\Utils;
+use OutOfBoundsException;
 use RuntimeException;
 use UnexpectedValueException;
 
@@ -142,7 +143,7 @@ class Response
     {
         $header = strtolower($header);
         if (!isset($this->headers[$header])) {
-            throw new \OutOfBoundsException('Header not set: ' . $header);
+            throw new OutOfBoundsException('Header not set: ' . $header);
         }
         return $this->headers[$header];
     }
