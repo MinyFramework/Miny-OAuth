@@ -338,7 +338,7 @@ class OAuthClient
     public function storeAccessToken(AccessToken $token)
     {
         $storage = $this->provider->getStorage();
-        $this->log('Storing acces token: ' . $this->access_token);
+        $this->log('Storing acces token: ' . $token);
         $storage->access_token = $token;
         $this->access_token = $token;
     }
