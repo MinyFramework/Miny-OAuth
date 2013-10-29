@@ -48,7 +48,7 @@ class SessionStorage implements iPersistentStorage
         $this->session = $session;
     }
 
-    public function __get($key)
+    public function &__get($key)
     {
         return $this->session['oauth'][$this->provider_name][$key];
     }
