@@ -9,7 +9,6 @@
 
 namespace Modules\OAuth;
 
-use Miny\HTTP\Request;
 use Miny\Log;
 use OutOfBoundsException;
 use RuntimeException;
@@ -32,7 +31,7 @@ class OAuthWrapper
     private $clients = array();
 
     /**
-     * @var Request
+     * @var array
      */
     private $request;
 
@@ -42,10 +41,13 @@ class OAuthWrapper
     private $log;
 
     /**
-     * @param Request $request
+     * @param array $request
+     * @param string $request_path
+     * @param Log|null $log
      */
-    public function __construct(Request $request, Log $log = NULL)
+    public function __construct(array $request, $request_path, Log $log = NULL)
     {
+        $request['path'] = $request_path;
         $this->request = $request;
         $this->log = $log;
     }
@@ -85,7 +87,7 @@ class OAuthWrapper
     public function getOAuthObject($provider)
     {
         if (!is_string($provider)) {
-            throw new RuntimeException('Parameter "provider" must be of string type.');
+            throw new RuntimeException('Provider name must be a string.');
         }
         if (!isset($this->providers[$provider])) {
             throw new OutOfBoundsException(sprintf('Provider "%s" is not set', $provider));

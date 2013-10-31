@@ -71,9 +71,9 @@ class OAuthClient
     /**
      *
      * @param ProviderDescriptor $pd
-     * @param Request $request
+     * @param array $request
      */
-    public function __construct(ProviderDescriptor $pd, Request $request, Log $log = NULL)
+    public function __construct(ProviderDescriptor $pd, array $request, Log $log = NULL)
     {
         $this->provider = $pd;
         $this->request = $request;
@@ -108,12 +108,13 @@ class OAuthClient
      */
     protected function getRequestVar($name)
     {
-        $allowed = array('code', 'error', 'state', 'oauth_token', 'oauth_verifier', 'denied');
+        $allowed = array('code', 'error', 'state', 'oauth_token', 'oauth_verifier', 'denied', 'path');
         if (!in_array($name, $allowed)) {
             $message = sprintf('Request variable "%s" can not be accessed from this scope.', $name);
             throw new UnexpectedValueException($message);
         }
-        return isset($this->request->get[$name]) ? $this->request->get[$name] : null;
+        $this->log('Accessing ' . $name . ' request parameter');
+        return isset($this->request[$name]) ? $this->request[$name] : null;
     }
 
     /**
@@ -449,7 +450,7 @@ class OAuthClient
      */
     private function getRedirectUri()
     {
-        return 'http://' . $_SERVER['HTTP_HOST'] . $this->request->path;
+        return 'http://' . $_SERVER['HTTP_HOST'] . $this->getRequestVar('path');
     }
 
     private function processOAuth1()
