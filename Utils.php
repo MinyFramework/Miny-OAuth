@@ -17,7 +17,6 @@ namespace Modules\OAuth;
 class Utils
 {
     /**
-     *
      * @param mixed $variable
      * @return boolean
      */
@@ -42,10 +41,9 @@ class Utils
         $arr = array();
         foreach ($obj as $k => $v) {
             if (is_object($v) || is_array($v)) {
-                $arr[$k] = self::convertObjectToArray($v);
-            } else {
-                $arr[$k] = $v;
+                $v = self::convertObjectToArray($v);
             }
+            $arr[$k] = $v;
         }
         return $arr;
     }
@@ -108,4 +106,3 @@ class Utils
     }
 
 }
-

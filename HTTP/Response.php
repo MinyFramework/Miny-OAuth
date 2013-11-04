@@ -27,6 +27,7 @@ class Response
     private $response_reason;
     private $headers;
     private $body;
+    private $body_processed = false;
 
     const PROCESS_NONE = 0;
     const PROCESS_AUTOMATIC = 1;
@@ -99,18 +100,21 @@ class Response
         if (!isset($this->body)) {
             return; //nothing to process
         }
-        switch ($process_type) {
-            case self::PROCESS_NONE:
-                break;
-            case self::PROCESS_AUTOMATIC:
-                $this->body = $this->processResponseByContentType();
-                break;
-            case self::PROCESS_CUSTOM:
-                $this->body = call_user_func($callback, $this->body, $this);
-                break;
-            default:
-                $message = sprintf('Unknown processing type: "%s"', $process_type);
-                throw new UnexpectedValueException($message);
+        if (!$this->body_processed) {
+            switch ($process_type) {
+                case self::PROCESS_NONE:
+                    break;
+                case self::PROCESS_AUTOMATIC:
+                    $this->body = $this->processResponseByContentType();
+                    break;
+                case self::PROCESS_CUSTOM:
+                    $this->body = call_user_func($callback, $this->body, $this);
+                    break;
+                default:
+                    $message = sprintf('Unknown processing type: "%s"', $process_type);
+                    throw new UnexpectedValueException($message);
+            }
+            $this->body_processed = true;
         }
         return $this->body;
     }
