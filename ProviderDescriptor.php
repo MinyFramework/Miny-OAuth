@@ -29,10 +29,11 @@ class ProviderDescriptor
     private $replace_array;
     private $http_response_processing_type = Response::PROCESS_AUTOMATIC;
     private $http_response_processing_callback;
+    private $scope;
 
     /**
      *
-     * @var \Modules\OAuth\Client\iPersistentStorage
+     * @var iPersistentStorage
      */
     private $persistent_storage;
     private $urls = array();
@@ -55,7 +56,7 @@ class ProviderDescriptor
 
     /**
      *
-     * @param \Modules\OAuth\Client\iPersistentStorage $persistent_storage
+     * @param iPersistentStorage $persistent_storage
      */
     public function __construct(iPersistentStorage $persistent_storage)
     {
@@ -64,7 +65,7 @@ class ProviderDescriptor
 
     /**
      *
-     * @return \Modules\OAuth\Client\iPersistentStorage
+     * @return iPersistentStorage
      */
     public function getStorage()
     {

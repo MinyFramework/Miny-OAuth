@@ -64,12 +64,6 @@ class OAuthClient
 
     /**
      *
-     * @var string|array
-     */
-    public $scope;
-
-    /**
-     *
      * @param ProviderDescriptor $pd
      * @param array $request
      */
@@ -456,7 +450,7 @@ class OAuthClient
     private function processOAuth1()
     {
         $one_a = ($this->provider->version === '1.0a');
-        $this->log('Initializing OAuth ' . ($one_a) ? '1.0a' : '1.0');
+        $this->log('Initializing OAuth ' . (($one_a) ? '1.0a' : '1.0'));
         $access_token = $this->getAccessToken();
         if ($access_token instanceof AccessToken) {
             if (isset($access_token->expiry)) {
@@ -515,15 +509,16 @@ class OAuthClient
         if (!$access_token->authorized) {
             $this->log('The access token is a newly created empty token.');
             $this->log('Request an access token.');
-            if (isset($this->scope)) {
-                if (is_array($this->scope)) {
-                    $values['scope'] = impolode(',', $this->scope);
+            $values = array();
+            if (isset($this->provider->scope) && !empty($this->provider->scope)) {
+                if (is_array($this->provider->scope)) {
+                    $values['scope'] = implode(',', $this->provider->scope);
                 } else {
-                    $values['scope'] = $this->scope;
+                    $values['scope'] = $this->provider->scope;
                 }
                 $this->log('Access token scope: ' . $values['scope']);
             }
-            $url = $this->provider->getUrl('request_token', '', array('scope' => $this->scope));
+            $url = $this->provider->getUrl('request_token', '', $values);
             $options = array(
                 'oauth_callback' => $this->getRedirectUri()
             );
@@ -574,11 +569,11 @@ class OAuthClient
             );
             $this->log('Request state does not match the stored state.');
             $this->log('Request a new access code.');
-            if (isset($this->scope)) {
-                if (is_array($this->scope)) {
-                    $values['scope'] = impolode(',', $this->scope);
+            if (isset($this->provider->scope) && !empty($this->provider->scope)) {
+                if (is_array($this->provider->scope)) {
+                    $values['scope'] = implode(',', $this->provider->scope);
                 } else {
-                    $values['scope'] = $this->scope;
+                    $values['scope'] = $this->provider->scope;
                 }
                 $this->log('Access token scope: ' . $values['scope']);
             }
