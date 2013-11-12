@@ -10,6 +10,7 @@
 namespace Modules\OAuth\HTTP;
 
 use BadMethodCallException;
+use Miny\Log;
 use Modules\OAuth\Utils;
 use RuntimeException;
 
@@ -24,6 +25,16 @@ class Client
     const METHOD_DELETE = 'DELETE';
     const USER_AGENT = 'MinyHTTP-Client 1.0';
 
+    private static $log_keys = array(
+        CURLOPT_URL            => 'URL: %s',
+        CURLOPT_USERAGENT      => 'User Agent: %s',
+        CURLOPT_BINARYTRANSFER => 'Binary: %s',
+        CURLOPT_PORT           => 'Port: %s',
+        CURLOPT_HTTPHEADER     => 'Headers: %s',
+        CURLOPT_TIMEOUT        => 'Timeout: %s',
+        CURLOPT_CUSTOMREQUEST  => 'Method: %s',
+        CURLOPT_POSTFIELDS     => 'Post fields: %s'
+    );
     private $url;
     private $port;
     private $ssl_cert;
@@ -36,9 +47,27 @@ class Client
     private $binary = false;
     private $follow_location = false;
 
-    public function __construct($ssl_cert = null)
+    /**
+     * @var Log
+     */
+    private $log;
+
+    public function __construct($ssl_cert = null, Log $log = null)
     {
         $this->ssl_cert = $ssl_cert;
+        $this->log = $log;
+    }
+
+    /**
+     * @param string $message
+     */
+    public function log()
+    {
+        if ($this->log !== NULL) {
+            $params = func_get_args();
+            $message = array_shift($params);
+            $this->log->debug('HTTP Client: ' . $message, $params);
+        }
     }
 
     public function setUrl($url)
@@ -116,10 +145,11 @@ class Client
     public function send(array $curl_options = array())
     {
         if (!isset($this->curl_handle)) {
-            $this->curl_handle = curl_init($this->url);
+            $this->curl_handle = curl_init();
         }
         $ch = $this->curl_handle;
 
+        $curl_options[CURLOPT_URL] = $this->url;
         $curl_options[CURLOPT_USERAGENT] = $this->user_agent ? : self::USER_AGENT;
         $curl_options[CURLOPT_RETURNTRANSFER] = true;
         $curl_options[CURLOPT_HEADER] = true;
@@ -146,20 +176,29 @@ class Client
             $curl_options[CURLOPT_TIMEOUT] = $this->timeout;
         }
 
-        switch ($this->method) {
-            case self::METHOD_GET:
-                break;
-            case self::METHOD_POST:
-                $curl_options[CURLOPT_POST] = 1;
-                break;
-            default:
-                $curl_options[CURLOPT_CUSTOMREQUEST] = $this->method;
-                break;
-        }
+        $curl_options[CURLOPT_CUSTOMREQUEST] = $this->method;
         if (count($this->post_fields) > 0) {
             $curl_options[CURLOPT_POSTFIELDS] = $this->post_fields;
         }
+        $this->logRequest($curl_options);
         return $this->execute($ch, $curl_options);
+    }
+
+    private function logRequest(array $options)
+    {
+        if ($this->log !== null) {
+            foreach ($options as $key => $option) {
+                if (!isset(self::$log_keys[$key])) {
+                    continue;
+                }
+                if (is_array($option)) {
+                    $option = print_r($option, 1);
+                } else if (is_bool($option)) {
+                    $option = $option ? 'yes' : 'no';
+                }
+                $this->log(self::$log_keys[$key], $option);
+            }
+        }
     }
 
     private function execute($ch, array $curl_options)

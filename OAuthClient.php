@@ -149,7 +149,7 @@ class OAuthClient
                                 array $options = array())
     {
         $cert_file = isset($this->provider->certificate_file) ? $this->provider->certificate_file : null;
-        $http = new Client($cert_file);
+        $http = new Client($cert_file, $this->log);
 
         $message = sprintf('Sending API call to [%s] %s', $method, $url);
         $this->log($message);
@@ -283,6 +283,8 @@ class OAuthClient
             $message = sprintf('An error has occured. The error code is %d and the message is "%s"',
                     $response->status_code, $response->response_reason);
             $details = $this->processResponse($response);
+            $this->log('Response object: ' . print_r($response, 1));
+            $this->log('Exception details: ' . print_r($details, 1));
             throw new OAuthException($message, $details);
         }
         return $response;
