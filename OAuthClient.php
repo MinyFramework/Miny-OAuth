@@ -135,6 +135,85 @@ class OAuthClient
         return $state;
     }
 
+    public function generateSignatureBase($method, $url, $values, $parameters)
+    {
+        $uri = strtok($url, '?');
+        $base_str = strtoupper($method) . '&' . Utils::encode($uri) . '&';
+        $sign_values = array_merge($values, $parameters);
+        $u = parse_url($url, PHP_URL_QUERY);
+        if (isset($u)) {
+            $q = array();
+            parse_str($u, $q);
+            foreach ($q as $parameter => $value) {
+                $sign_values[$parameter] = $value;
+            }
+        }
+        ksort($sign_values);
+        $base_str .= Utils::encode(http_build_query($sign_values, '', '&', PHP_QUERY_RFC3986));
+
+        $this->log('Signature base string: ' . $base_str);
+        return $base_str;
+    }
+
+    public function signRequest($method, $url, $values, $parameters)
+    {
+        $key = Utils::encode($this->provider->client_secret) . '&';
+        if (isset($this->access_token)) {
+            $key .= Utils::encode($this->access_token->secret);
+        }
+        $this->log('Signing method: ' . $this->provider->signature_method);
+        $this->log('Signature key: ' . $key);
+
+        switch ($this->provider->signature_method) {
+            case self::SIGNATURE_PLAINTEXT:
+                $signature = $key;
+                break;
+            case self::SIGNATURE_HMAC_SHA1:
+                if (!in_array('sha1', hash_algos())) {
+                    throw new RuntimeException('SHA1 is not supported by the Hash extension');
+                }
+                $base_str = $this->generateSignatureBase($method, $url, $values, $parameters);
+
+                $signature = base64_encode(hash_hmac('sha1', $base_str, $key, true));
+                break;
+            default:
+                $message = sprintf('Signature method "%s" is not supported.', $this->provider->signature_method);
+                throw new UnexpectedValueException($message);
+        }
+        $this->log('Signature: ' . $signature);
+
+        return $signature;
+    }
+
+    private function processFiles($files, $parameters, $http)
+    {
+        foreach ($files as $field_name => $info) {
+            if (!isset($parameters[$field_name])) {
+                $message = sprintf('"%s" is not found in the parameters array.', $field_name);
+                throw new OutOfBoundsException($message);
+            }
+            if (!isset($info['file_name'])) {
+                $message = sprintf('File name is missing from "%s".', $field_name);
+                throw new InvalidArgumentException($message);
+            }
+            $http->addFile($field_name, isset($info['mime_type']) ? $info['file_name'] : null);
+            unset($parameters[$field_name]);
+        }
+        return $parameters;
+    }
+
+    public function generateAuthorizationHeader($values)
+    {
+        $authorization = 'OAuth';
+        $separator = ' ';
+        ksort($values);
+        foreach ($values as $parameter => $value) {
+            $authorization .= $separator . $parameter . '="' . Utils::encode($value) . '"';
+            $separator = ', ';
+        }
+        return $authorization;
+    }
+
     /**
      *
      * @param string $url
@@ -183,80 +262,23 @@ class OAuthClient
             if (count($files) > 0) {
                 $method = 'POST'; //force method to be POST
                 $type = 'multipart/form-data';
-                foreach ($files as $field_name => $info) {
-                    if (!isset($parameters[$field_name])) {
-                        $message = sprintf('"%s" is not found in the parameters array.', $field_name);
-                        throw new OutOfBoundsException($message);
-                    }
-                    if (!isset($info['file_name'])) {
-                        $message = sprintf('File name is missing from "%s".', $field_name);
-                        throw new InvalidArgumentException($message);
-                    }
-                    $http->addFile($field_name, isset($info['mime_type']) ? $info['file_name'] : null);
-                    unset($parameters[$field_name]);
-                }
+                $parameters = $this->processFiles($files, $parameters, $http);
             } else if ($type == 'application/x-www-form-urlencoded') {
                 if ($this->provider->url_parameters && count($parameters)) {
                     $url = Utils::addURLParams($url, $parameters);
                     $parameters = array();
-                } else {
-                    $values = array_merge($values, $parameters);
                 }
             }
-
-            $key = Utils::encode($this->provider->client_secret) . '&';
-            if (isset($this->access_token)) {
-                $key .= Utils::encode($this->access_token->secret);
-            }
-            $this->log('Signing method: ' . $this->provider->signature_method);
-            $this->log('Signature key: ' . $key);
-
-            switch ($this->provider->signature_method) {
-                case self::SIGNATURE_PLAINTEXT:
-                    $values['oauth_signature'] = $key;
-                    break;
-                case self::SIGNATURE_HMAC_SHA1:
-                    if (!in_array('sha1', hash_algos())) {
-                        throw new RuntimeException('SHA1 is not supported by the Hash extension');
-                    }
-                    $uri = strtok($url, '?');
-                    $base_str = strtoupper($method) . '&' . Utils::encode($uri) . '&';
-                    $sign_values = $values;
-                    $u = parse_url($url, PHP_URL_QUERY);
-                    if (isset($u)) {
-                        $q = array();
-                        parse_str($u, $q);
-                        foreach ($q as $parameter => $value) {
-                            $sign_values[$parameter] = $value;
-                        }
-                    }
-                    ksort($sign_values);
-                    $base_str .= Utils::encode(http_build_query($sign_values, '', '&', PHP_QUERY_RFC3986));
-
-                    $this->log('Signature base string: ' . $base_str);
-
-                    $values['oauth_signature'] = base64_encode(hash_hmac('sha1', $base_str, $key, true));
-                    break;
-                default:
-                    $message = sprintf('Signature method "%s" is not supported.', $this->provider->signature_method);
-                    throw new UnexpectedValueException($message);
-            }
-            $this->log('Signature: ' . $values['oauth_signature']);
+            $values['oauth_signature'] = $this->signRequest($method, $url, $values, $parameters);
             ksort($values);
             if ($this->provider->authorization_header) {
-                $authorization = 'OAuth';
-                $separator = ' ';
-                foreach ($values as $parameter => $value) {
-                    $authorization .= $separator . $parameter . '="' . Utils::encode($value) . '"';
-                    $separator = ', ';
-                }
+                $authorization = $this->generateAuthorizationHeader($values);
+            }
+            $post_values_in_uri = isset($options['post_values_in_uri']) && $options['post_values_in_uri'];
+            if ($method === Client::METHOD_GET || $this->provider->post_values_in_uri || $post_values_in_uri) {
+                $url = Utils::addURLParams($url, $parameters);
             } else {
-                $post_values_in_uri = isset($options['post_values_in_uri']) && $options['post_values_in_uri'];
-                if ($method === Client::METHOD_GET || $this->provider->post_values_in_uri || $post_values_in_uri) {
-                    $url = Utils::addURLParams($url, $values);
-                } else {
-                    $post_values = $values;
-                }
+                $post_values = $parameters;
             }
         } else {
             $post_values = $parameters;
@@ -283,7 +305,7 @@ class OAuthClient
             $message = sprintf('An error has occured. The error code is %d and the message is "%s"',
                     $response->status_code, $response->response_reason);
             $details = $this->processResponse($response);
-            $this->log('Response object: ' . print_r($response, 1));
+            $this->log('Response headers: ' . print_r($response->headers, 1));
             $this->log('Exception details: ' . print_r($details, 1));
             throw new OAuthException($message, $details);
         }

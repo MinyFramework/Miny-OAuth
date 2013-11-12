@@ -46,6 +46,7 @@ class Client
     private $curl_handle;
     private $binary = false;
     private $follow_location = false;
+    private $is_file_upload = false;
 
     /**
      * @var Log
@@ -119,6 +120,7 @@ class Client
         if ($type) {
             $value .= ';type=' . $type;
         }
+        $this->is_file_upload = true;
         $this->addPostField($field, $value);
     }
 
@@ -178,7 +180,11 @@ class Client
 
         $curl_options[CURLOPT_CUSTOMREQUEST] = $this->method;
         if (count($this->post_fields) > 0) {
-            $curl_options[CURLOPT_POSTFIELDS] = $this->post_fields;
+            if ($this->is_file_upload) {
+                $curl_options[CURLOPT_POSTFIELDS] = $this->post_fields;
+            } else {
+                $curl_options[CURLOPT_POSTFIELDS] = http_build_query($this->post_fields, '', '&');
+            }
         }
         $this->logRequest($curl_options);
         return $this->execute($ch, $curl_options);
