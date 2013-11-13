@@ -496,11 +496,13 @@ class OAuthClient
                         $this->log('The request does not include a token or verifier.');
                         $this->log('Creating an empty access token.');
                         $access_token = new AccessToken();
+                        $this->resetAccessToken();
                     }
                 } elseif ($token !== $access_token->access_token) {
                     $this->log('The token contained in the request does not match the stored token.');
                     $this->log('Creating an empty access token.');
                     $access_token = new AccessToken();
+                    $this->resetAccessToken();
                 } else {
                     $this->log('Exchanging the request token for an access token.');
                     $url = $this->provider->getUrl('access_token');
@@ -529,6 +531,7 @@ class OAuthClient
             $this->log('No access token was stored.');
             $this->log('Creating an empty access token.');
             $access_token = new AccessToken();
+            $this->resetAccessToken();
         }
         if (!$access_token->authorized) {
             $this->log('The access token is a newly created empty token.');
