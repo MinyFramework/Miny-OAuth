@@ -9,7 +9,6 @@
 
 namespace Modules\OAuth;
 
-use Exception;
 use InvalidArgumentException;
 use Miny\HTTP\Request;
 use Miny\Log;
@@ -19,13 +18,6 @@ use Modules\OAuth\HTTP\Response;
 use OutOfBoundsException;
 use RuntimeException;
 use UnexpectedValueException;
-
-if (!function_exists('curl_init')) {
-    throw new Exception('OAuth needs the CURL PHP extension.');
-}
-if (!function_exists('json_decode')) {
-    throw new Exception('OAuth needs the JSON PHP extension.');
-}
 
 /**
  * OAuthClient is a client-side class for OAuth 1.0, 1.0a and 2.0 protocols.
@@ -222,7 +214,7 @@ class OAuthClient
      * @param array $options
      * @param boolean $process_response
      * @return Response
-     * @throws UnexpectedValueException
+     * @throws OAuthException
      */
     public function sendApiCall($url, $method = Client::METHOD_GET, array $parameters = array(),
                                 array $options = array())
@@ -313,11 +305,11 @@ class OAuthClient
     }
 
     /**
-     *
      * @param string $url
      * @param string $method
      * @param array $parameters
      * @param array $options
+     * @throws OAuthException
      */
     public function call($url, $method = Client::METHOD_GET, array $parameters = array(), array $options = array())
     {
@@ -332,10 +324,9 @@ class OAuthClient
                 break;
             case 2:
                 if (strcmp($access_token->expiry, gmstrftime('%Y-%m-%d %H:%M:%S')) <= 0) {
-                    //access token is expired
-                    $this->log('Access token is expired. Refreshing');
+                    $this->log('Access token is expired. Trying to refresh');
                     if (!isset($access_token->refresh_token)) {
-                        throw new RuntimeException('Access token has expired but no refresh token is set.');
+                        throw new OAuthException('Access token has expired but no refresh token is set.');
                     }
                     $this->refreshToken();
                 }
@@ -351,7 +342,6 @@ class OAuthClient
     }
 
     /**
-     *
      * @param AccessToken $token
      */
     public function storeAccessToken(AccessToken $token)
@@ -374,7 +364,6 @@ class OAuthClient
     }
 
     /**
-     *
      * @return null|AccessToken
      */
     public function getAccessToken()
@@ -399,7 +388,6 @@ class OAuthClient
     }
 
     /**
-     *
      * @param array $values
      */
     public function processTokenRequest(array $values = array())
@@ -491,7 +479,7 @@ class OAuthClient
                 if ($token === null || ($one_a && $verifier === null)) {
                     $denied = $this->getRequestVar('denied');
                     if (isset($denied) && $denied === $access_token->access_token) {
-                        throw new UnexpectedValueException('The access token was denied.');
+                        throw new OAuthException('The access token was denied.');
                     } else {
                         $this->log('The request does not include a token or verifier.');
                         $this->log('Creating an empty access token.');
@@ -584,8 +572,7 @@ class OAuthClient
                 $this->log('Access code is empty.');
                 $error = $this->getRequestVar('error');
                 if ($error != null) {
-                    $message = sprintf('An error has occured. The error received id "%s"', $error);
-                    throw new UnexpectedValueException($message);
+                    throw new OAuthException('An error has occured.');
                 }
             }
             $this->fetchAccessToken($code);
@@ -616,6 +603,7 @@ class OAuthClient
     /**
      * Interact with the OAuth provider.
      * This function redirects the user to the service provider and request an access token.
+     * @throws OAuthException
      */
     public function process()
     {
@@ -632,11 +620,15 @@ class OAuthClient
         }
     }
 
+    /**
+     * @param mixed $version
+     * @throws OAuthException
+     */
     private function versionNotSupported($version)
     {
         $message = sprintf('OAuth %s is not supported.', $version);
         $this->log($message);
-        throw new UnexpectedValueException($message);
+        throw new OAuthException($message);
     }
 
 }

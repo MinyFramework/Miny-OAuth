@@ -9,10 +9,15 @@
 
 namespace Modules\OAuth\HTTP;
 
+use Exception;
 use BadMethodCallException;
 use Miny\Log;
 use Modules\OAuth\Utils;
 use RuntimeException;
+
+if (!function_exists('curl_init')) {
+    throw new Exception('HTTP Client needs the CURL PHP extension.');
+}
 
 /**
  * @author Dániel Buga

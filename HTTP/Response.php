@@ -9,11 +9,15 @@
 
 namespace Modules\OAuth\HTTP;
 
+use Exception;
 use Modules\OAuth\Utils;
 use OutOfBoundsException;
 use RuntimeException;
 use UnexpectedValueException;
 
+if (!function_exists('json_decode')) {
+    throw new Exception('HTTP Response needs the JSON PHP extension.');
+}
 /**
  * Response
  *
