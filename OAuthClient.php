@@ -69,7 +69,7 @@ class OAuthClient
     protected function log($message)
     {
         if (isset($this->log)) {
-            $this->log->write('OAuth: ' . $message, Log::DEBUG);
+            $this->log->debug('OAuth: ' . $message);
         }
     }
 
@@ -111,19 +111,14 @@ class OAuthClient
         $storage = $this->provider->getStorage();
         if (!isset($storage->oauth_state)) {
             $state = md5(time() . rand());
-
             $message = sprintf('Setting stored state: %s', $state);
-            $this->log($message);
-
             $storage->oauth_state = $state;
         } else {
             $state = $storage->oauth_state;
-
             $message = sprintf('Stored state: %s', $state);
-            $this->log($message);
-
             unset($storage->oauth_state);
         }
+        $this->log($message);
         return $state;
     }
 
