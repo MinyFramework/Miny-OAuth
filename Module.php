@@ -11,7 +11,7 @@ namespace Modules\OAuth;
 
 use Miny\Application\BaseApplication;
 
-class Module extends \Miny\Application\Module
+class Module extends \Miny\Modules\Module
 {
     public function init(BaseApplication $app)
     {
