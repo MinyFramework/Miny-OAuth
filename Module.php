@@ -13,10 +13,10 @@ use Miny\Application\BaseApplication;
 
 class Module extends \Miny\Modules\Module
 {
+
     public function init(BaseApplication $app)
     {
-        $app->add('oauth', __NAMESPACE__.'\OAuthWrapper')
-            ->setArguments('@oauth:request_data', '@oauth:request_path', '&log');
+        $app->getFactory()->add('oauth', __NAMESPACE__ . '\OAuthWrapper')
+                ->setArguments('@oauth:request_data', '@oauth:request_path', '&log');
     }
-
 }
