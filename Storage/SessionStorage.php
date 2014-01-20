@@ -9,7 +9,7 @@
 
 namespace Modules\OAuth\Storage;
 
-use Miny\Session\Session;
+use Miny\HTTP\Session;
 
 /**
  * SessionStorage is the most basic persistance layer possible.
