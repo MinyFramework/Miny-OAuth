@@ -2,17 +2,7 @@
 
 namespace Modules\OAuth;
 
-use Miny\Log;
 use Modules\OAuth\Storage\DummyStorage;
-
-require_once dirname(__FILE__) . '/../ProviderDescriptor.php';
-require_once dirname(__FILE__) . '/../OAuthClient.php';
-require_once dirname(__FILE__) . '/../AccessToken.php';
-require_once dirname(__FILE__) . '/../HTTP/Client.php';
-require_once dirname(__FILE__) . '/../HTTP/Response.php';
-require_once dirname(__FILE__) . '/../Storage/iPersistentStorage.php';
-require_once dirname(__FILE__) . '/../Storage/DummyStorage.php';
-require_once dirname(__FILE__) . '/../Utils.php';
 
 class OAuthClientTest extends \PHPUnit_Framework_TestCase
 {
