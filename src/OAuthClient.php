@@ -11,7 +11,7 @@ namespace Modules\OAuth;
 
 use InvalidArgumentException;
 use Miny\HTTP\Request;
-use Miny\Log;
+use Miny\Log\Log;
 use Modules\OAuth\Exceptions\OAuthException;
 use Modules\OAuth\HTTP\Client;
 use Modules\OAuth\HTTP\Response;
@@ -55,11 +55,11 @@ class OAuthClient
     private $access_token;
 
     /**
-     *
      * @param ProviderDescriptor $pd
-     * @param array $request
+     * @param array              $request
+     * @param \Miny\Log\Log      $log
      */
-    public function __construct(ProviderDescriptor $pd, array $request, Log $log = NULL)
+    public function __construct(ProviderDescriptor $pd, array $request, Log $log = null)
     {
         $this->provider = $pd;
         $this->request  = $request;
@@ -69,9 +69,8 @@ class OAuthClient
     protected function log($message)
     {
         if (isset($this->log)) {
-            $args = func_get_args();
-            array_shift($args);
-            $this->log->debug('OAuth: ' . $message, $args);
+            $args = array_slice(func_get_args(), 1);
+            $this->log->write(Log::DEBUG, 'OAuth', $message, $args);
         }
     }
 
@@ -79,8 +78,9 @@ class OAuthClient
      *
      * @param string $name
      * @param string $path
-     * @param array $options Replacement array
-     * @param array $parameters Appended parameters
+     * @param array  $options    Replacement array
+     * @param array  $parameters Appended parameters
+     *
      * @return string
      */
     public function getUrl($name, $path = '', array $options = array(), array $parameters = array())
@@ -91,6 +91,7 @@ class OAuthClient
     /**
      *
      * @param string $name
+     *
      * @return string|null
      * @throws UnexpectedValueException
      */
@@ -166,7 +167,7 @@ class OAuthClient
                 $signature = base64_encode(hash_hmac('sha1', $base_str, $key, true));
                 break;
             default:
-                $message   = sprintf('Signature method "%s" is not supported.', $this->provider->signature_method);
+                $message = sprintf('Signature method "%s" is not supported.', $this->provider->signature_method);
                 throw new UnexpectedValueException($message);
         }
         $this->log('Signature: %s', $signature);
@@ -205,11 +206,12 @@ class OAuthClient
 
     /**
      *
-     * @param string $url
-     * @param string $method
-     * @param array $parameters
-     * @param array $options
+     * @param string  $url
+     * @param string  $method
+     * @param array   $parameters
+     * @param array   $options
      * @param boolean $process_response
+     *
      * @return Response
      * @throws OAuthException
      */
@@ -291,7 +293,7 @@ class OAuthClient
         $this->log('Response status: [%s] %s', $response->status_code, $response->response_reason);
         if ($response->status_code < 200 || $response->status_code >= 300) {
             $message = sprintf('An error has occured. The error code is %d and the message is "%s"',
-                    $response->status_code, $response->response_reason);
+                $response->status_code, $response->response_reason);
             $details = $this->processResponse($response);
             $this->log('Response headers: %s', print_r($response->headers, 1));
             $this->log('Exception details: %s', print_r($details, 1));
@@ -303,8 +305,9 @@ class OAuthClient
     /**
      * @param string $url
      * @param string $method
-     * @param array $parameters
-     * @param array $options
+     * @param array  $parameters
+     * @param array  $options
+     *
      * @throws OAuthException
      */
     public function call($url, $method = Client::METHOD_GET, array $parameters = array(), array $options = array())
@@ -316,7 +319,7 @@ class OAuthClient
         $version = $this->provider->version;
         switch (intval($version)) {
             case 1:
-                $options['oauth_token'] = (string) $access_token;
+                $options['oauth_token'] = (string)$access_token;
                 break;
             case 2:
                 if (strcmp($access_token->expiry, gmstrftime('%Y-%m-%d %H:%M:%S')) <= 0) {
@@ -328,7 +331,7 @@ class OAuthClient
                 }
 
                 if (strcasecmp($access_token->type, 'bearer')) {
-                    $url = Utils::addURLParams($url, array('access_token' => (string) $access_token));
+                    $url = Utils::addURLParams($url, array('access_token' => (string)$access_token));
                 }
                 break;
             default:
@@ -342,7 +345,7 @@ class OAuthClient
      */
     public function storeAccessToken(AccessToken $token)
     {
-        $storage               = $this->provider->getStorage();
+        $storage = $this->provider->getStorage();
         $this->log('Storing acces token: %s', $token);
         $storage->access_token = $token;
         $this->access_token    = $token;
@@ -375,9 +378,9 @@ class OAuthClient
         return $this->access_token;
     }
 
-    public function processResponse(Response $http_response, $callback = NULL)
+    public function processResponse(Response $http_response, $callback = null)
     {
-        if (isset($this->provider->http_response_processing_callback) && $callback == NULL) {
+        if (isset($this->provider->http_response_processing_callback) && $callback == null) {
             $callback = $this->provider->http_response_processing_callback;
         }
         return $http_response->processBody($this->provider->http_response_processing_type, $callback);
@@ -407,6 +410,7 @@ class OAuthClient
 
     /**
      * Fetches an access token from the remote provider.
+     *
      * @param string $access_code
      */
     public function fetchAccessToken($access_code)
@@ -455,7 +459,7 @@ class OAuthClient
 
     private function processOAuth1()
     {
-        $one_a        = ($this->provider->version === '1.0a');
+        $one_a = ($this->provider->version === '1.0a');
         $this->log('Initializing OAuth ' . (($one_a) ? '1.0a' : '1.0'));
         $access_token = $this->getAccessToken();
         if ($access_token instanceof AccessToken) {
@@ -489,7 +493,7 @@ class OAuthClient
                     $this->log('Exchanging the request token for an access token.');
                     $url     = $this->provider->getUrl('access_token');
                     $options = array(
-                        'oauth_token' => (string) $token,
+                        'oauth_token' => (string)$token,
                     );
                     if ($one_a) {
                         $this->log('Token verifier: ' . $verifier);
@@ -538,7 +542,7 @@ class OAuthClient
             $access_token = AccessToken::fromResponse($response, false);
             $this->storeAccessToken($access_token);
         }
-        $url_options = array('oauth_token' => (string) $access_token);
+        $url_options = array('oauth_token' => (string)$access_token);
         if (!$one_a) {
             $url_options['oauth_callback'] = $this->getRedirectUri();
         }
@@ -597,6 +601,7 @@ class OAuthClient
     /**
      * Interact with the OAuth provider.
      * This function redirects the user to the service provider and request an access token.
+     *
      * @throws OAuthException
      */
     public function process()
@@ -616,6 +621,7 @@ class OAuthClient
 
     /**
      * @param mixed $version
+     *
      * @throws OAuthException
      */
     private function versionNotSupported($version)

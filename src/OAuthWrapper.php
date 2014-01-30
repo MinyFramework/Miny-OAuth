@@ -9,7 +9,7 @@
 
 namespace Modules\OAuth;
 
-use Miny\Log;
+use Miny\Log\Log;
 use OutOfBoundsException;
 use RuntimeException;
 
@@ -81,8 +81,10 @@ class OAuthWrapper
 
     /**
      * @param string $provider
+     *
+     * @throws \RuntimeException
+     * @throws \OutOfBoundsException
      * @return OAuthClient
-     * @throws OutOfBoundsException
      */
     public function getOAuthObject($provider)
     {
