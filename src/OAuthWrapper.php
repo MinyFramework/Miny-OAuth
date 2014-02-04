@@ -9,6 +9,7 @@
 
 namespace Modules\OAuth;
 
+use Miny\HTTP\Request;
 use Miny\Log\Log;
 use OutOfBoundsException;
 use RuntimeException;
@@ -41,20 +42,21 @@ class OAuthWrapper
     private $log;
 
     /**
-     * @param array $request
-     * @param string $request_path
-     * @param Log|null $log
+     * @param Request $request
+     * @param Log|null                 $log
      */
-    public function __construct(array $request, $request_path, Log $log = NULL)
+    public function __construct(Request $request, Log $log = null)
     {
-        $request['path'] = $request_path;
-        $this->request = $request;
-        $this->log = $log;
+        $requestArray         = $request->get;
+        $requestArray['path'] = $request->path;
+        $this->request        = $requestArray;
+        $this->log            = $log;
     }
 
     /**
-     * @param string $provider The alias of the provider.
+     * @param string             $provider The alias of the provider.
      * @param ProviderDescriptor $pd
+     *
      * @throws RuntimeException
      * @return OAuthClient
      */
@@ -64,11 +66,13 @@ class OAuthWrapper
             throw new RuntimeException('Parameter "provider" must be of string type.');
         }
         $this->providers[$provider] = $pd;
+
         return $this->getOAuthObject($provider);
     }
 
     /**
      * @param string $provider
+     *
      * @throws RuntimeException
      */
     public function unregisterProvider($provider)
@@ -97,6 +101,7 @@ class OAuthWrapper
         if (!isset($this->clients[$provider])) {
             $this->clients[$provider] = new OAuthClient($this->providers[$provider], $this->request, $this->log);
         }
+
         return $this->clients[$provider];
     }
 
