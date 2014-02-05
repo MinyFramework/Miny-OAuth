@@ -64,15 +64,11 @@ class Client
         $this->log = $log;
     }
 
-    /**
-     * @param string $message
-     */
-    public function log()
+    protected function log($message)
     {
-        if ($this->log !== NULL) {
-            $params = func_get_args();
-            $message = array_shift($params);
-            $this->log->debug('HTTP Client: ' . $message, $params);
+        if (isset($this->log)) {
+            $args = array_slice(func_get_args(), 1);
+            $this->log->write(Log::DEBUG, 'OAuth', $message, $args);
         }
     }
 
