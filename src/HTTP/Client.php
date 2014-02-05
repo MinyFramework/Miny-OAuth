@@ -11,7 +11,7 @@ namespace Modules\OAuth\HTTP;
 
 use Exception;
 use BadMethodCallException;
-use Miny\Log;
+use Miny\Log\Log;
 use Modules\OAuth\Utils;
 use RuntimeException;
 
