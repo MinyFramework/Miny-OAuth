@@ -47,8 +47,8 @@ class OAuthWrapper
      */
     public function __construct(Request $request, Log $log = null)
     {
-        $requestArray         = $request->get;
-        $requestArray['path'] = $request->path;
+        $requestArray         = $request->get()->toArray();
+        $requestArray['path'] = $request->getPath();
         $this->request        = $requestArray;
         $this->log            = $log;
     }
