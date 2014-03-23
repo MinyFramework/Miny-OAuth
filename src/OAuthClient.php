@@ -139,7 +139,8 @@ class OAuthClient
             }
         }
         ksort($sign_values);
-        $base_str .= Utils::encode(http_build_query($sign_values, '', '&', PHP_QUERY_RFC3986));
+        $base_str .= Utils::encode(http_build_query($sign_values, '', '&'));
+        $base_str = strtr($base_str, array('%2B' => '%2520'));
 
         $this->log('Signature base string: %s', $base_str);
         return $base_str;
