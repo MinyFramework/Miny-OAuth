@@ -1,8 +1,15 @@
 <?xml version="1.0"?>
 
 <phpunit
-    bootstrap="bootstrap.php"
-    stopOnFailure="true"
-    stopOnError="true"
->
+        bootstrap="bootstrap.php"
+        backupGlobals="false"
+        backupStaticAttributes="false"
+        colors="true"
+        convertErrorsToExceptions="true"
+        convertNoticesToExceptions="true"
+        convertWarningsToExceptions="true"
+        processIsolation="false"
+        stopOnFailure="false"
+        syntaxCheck="false"
+        >
 </phpunit>
