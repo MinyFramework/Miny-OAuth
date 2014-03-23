@@ -108,11 +108,13 @@ class ProviderDescriptor
     /**
      *
      * @param string $name
-     * @param array $options
-     * @param array $appended_parameters
+     * @param string $path
+     * @param array  $options
+     * @param array  $appended_parameters
+     *
+     * @throws \OutOfBoundsException
+     * @throws \UnexpectedValueException
      * @return string
-     * @throws UnexpectedValueException
-     * @throws OutOfBoundsException
      */
     public function getUrl($name, $path = '', array $options = array(), array $appended_parameters = null)
     {
