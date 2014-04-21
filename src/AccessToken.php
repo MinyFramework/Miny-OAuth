@@ -31,13 +31,16 @@ class AccessToken implements Serializable
 
     /**
      *
-     * @param array $response
-     * @param string $reused_refresh_token
+     * @param array|\Modules\OAuth\HTTP\Response $response
+     * @param bool                               $authorized
+     * @param string                             $reused_refresh_token
+     *
+     * @throws Exceptions\OAuthException
      * @return AccessToken
      */
     public static function fromResponse(Response $response, $authorized = true, $reused_refresh_token = null)
     {
-        $data = $response->body;
+        $data = $response->getBody();
         if (!isset($data['access_token']) && !isset($data['oauth_token'])) {
             $message = 'Data must contain an access_token.';
             throw new OAuthException ($message, $data);

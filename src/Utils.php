@@ -82,19 +82,6 @@ class Utils
     }
 
     /**
-     * Simple shorthand method for a common use case.
-     *
-     * @param string $string
-     * @param array  $replace
-     *
-     * @return string
-     */
-    public static function replaceString($string, array $replace)
-    {
-        return str_replace(array_keys($replace), $replace, $string);
-    }
-
-    /**
      * Encodes a string / array of string as per RFC3986 Section 2.3
      *
      * @param string|array $value
@@ -109,15 +96,15 @@ class Utils
             }
 
             return $value;
-        } else {
-            return Utils::replaceString(
-                rawurlencode($value),
-                array(
-                    '%7E' => '~',
-                    '+'   => ' '
-                )
-            );
         }
+
+        return strtr(
+            rawurlencode($value),
+            array(
+                '%7E' => '~',
+                '+'   => ' '
+            )
+        );
     }
 
 }

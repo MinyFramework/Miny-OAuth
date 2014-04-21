@@ -52,7 +52,7 @@ class OAuthClient
      *
      * @var AccessToken
      */
-    private $access_token;
+    private $accessToken;
 
     /**
      * @param ProviderDescriptor $pd
@@ -97,12 +97,20 @@ class OAuthClient
      */
     protected function getRequestVar($name)
     {
-        $allowed = array('code', 'error', 'state', 'oauth_token', 'oauth_verifier', 'denied', 'path');
+        $allowed = array(
+            'code',
+            'error',
+            'state',
+            'oauth_token',
+            'oauth_verifier',
+            'denied',
+            'path'
+        );
         if (!in_array($name, $allowed)) {
-            $message = sprintf('Request variable "%s" can not be accessed from this scope.', $name);
-            throw new UnexpectedValueException($message);
+            throw new UnexpectedValueException("Request variable \"{$name}\" can not be accessed from this scope.");
         }
         $this->log('Accessing %s request parameter', $name);
+
         return isset($this->request[$name]) ? $this->request[$name] : null;
     }
 
@@ -113,15 +121,17 @@ class OAuthClient
     {
         $storage = $this->provider->getStorage();
         if (!isset($storage->oauth_state)) {
-            $state                = md5(time() . rand());
-            $message              = sprintf('Setting stored state: %s', $state);
+            $state   = md5(time() . rand());
+            $message = 'Setting stored state: %s';
+
             $storage->oauth_state = $state;
         } else {
             $state   = $storage->oauth_state;
-            $message = sprintf('Stored state: %s', $state);
+            $message = 'Stored state: %s';
             unset($storage->oauth_state);
         }
-        $this->log($message);
+        $this->log($message, $state);
+
         return $state;
     }
 
@@ -143,14 +153,15 @@ class OAuthClient
         $base_str = strtr($base_str, array('%2B' => '%2520'));
 
         $this->log('Signature base string: %s', $base_str);
+
         return $base_str;
     }
 
     public function signRequest($method, $url, $values, $parameters)
     {
         $key = Utils::encode($this->provider->client_secret) . '&';
-        if (isset($this->access_token)) {
-            $key .= Utils::encode($this->access_token->secret);
+        if (isset($this->accessToken)) {
+            $key .= Utils::encode($this->accessToken->secret);
         }
         $this->log('Signing method: %s', $this->provider->signature_method);
         $this->log('Signature key: %s', $key);
@@ -168,28 +179,29 @@ class OAuthClient
                 $signature = base64_encode(hash_hmac('sha1', $base_str, $key, true));
                 break;
             default:
-                $message = sprintf('Signature method "%s" is not supported.', $this->provider->signature_method);
-                throw new UnexpectedValueException($message);
+                throw new UnexpectedValueException(sprintf(
+                    'Signature method "%s" is not supported.',
+                    $this->provider->signature_method
+                ));
         }
         $this->log('Signature: %s', $signature);
 
         return $signature;
     }
 
-    private function processFiles($files, $parameters, $http)
+    private function processFiles($files, $parameters, Client $http)
     {
         foreach ($files as $field_name => $info) {
             if (!isset($parameters[$field_name])) {
-                $message = sprintf('"%s" is not found in the parameters array.', $field_name);
-                throw new OutOfBoundsException($message);
+                throw new OutOfBoundsException("\"{$field_name}\" is not found in the parameters array.");
             }
             if (!isset($info['file_name'])) {
-                $message = sprintf('File name is missing from "%s".', $field_name);
-                throw new InvalidArgumentException($message);
+                throw new InvalidArgumentException("File name is missing from \"{$field_name}\".");
             }
             $http->addFile($field_name, isset($info['mime_type']) ? $info['file_name'] : null);
             unset($parameters[$field_name]);
         }
+
         return $parameters;
     }
 
@@ -202,23 +214,27 @@ class OAuthClient
             $authorization .= $separator . $parameter . '="' . Utils::encode($value) . '"';
             $separator = ', ';
         }
+
         return $authorization;
     }
 
     /**
      *
-     * @param string  $url
-     * @param string  $method
-     * @param array   $parameters
-     * @param array   $options
-     * @param boolean $process_response
+     * @param string $url
+     * @param string $method
+     * @param array  $parameters
+     * @param array  $options
+     *
+     * @throws Exceptions\OAuthException
      *
      * @return Response
-     * @throws OAuthException
      */
-    public function sendApiCall($url, $method = Client::METHOD_GET, array $parameters = array(),
-                                array $options = array())
-    {
+    public function sendApiCall(
+        $url,
+        $method = Client::METHOD_GET,
+        array $parameters = array(),
+        array $options = array()
+    ) {
         $cert_file = isset($this->provider->certificate_file) ? $this->provider->certificate_file : null;
         $http      = new Client($cert_file, $this->log);
 
@@ -240,7 +256,9 @@ class OAuthClient
                 'oauth_version'          => '1.0'
             );
             $move_keys   = array(
-                'oauth_token', 'oauth_verifier', 'oauth_callback'
+                'oauth_token',
+                'oauth_verifier',
+                'oauth_callback'
             );
             foreach ($move_keys as $key) {
                 if (isset($options[$key])) {
@@ -254,10 +272,12 @@ class OAuthClient
                 $method     = 'POST'; //force method to be POST
                 $type       = 'multipart/form-data';
                 $parameters = $this->processFiles($files, $parameters, $http);
-            } else if ($type == 'application/x-www-form-urlencoded') {
-                if ($this->provider->url_parameters && count($parameters)) {
-                    $url        = Utils::addURLParams($url, $parameters);
-                    $parameters = array();
+            } else {
+                if ($type == 'application/x-www-form-urlencoded') {
+                    if ($this->provider->url_parameters && count($parameters)) {
+                        $url        = Utils::addURLParams($url, $parameters);
+                        $parameters = array();
+                    }
                 }
             }
             $values['oauth_signature'] = $this->signRequest($method, $url, $values, $parameters);
@@ -278,9 +298,9 @@ class OAuthClient
         $http->setRequestMethod($method);
         $http->addPostFields($post_values);
 
-        if (!isset($authorization) && $this->access_token instanceof AccessToken) {
-            if (strcasecmp($this->access_token->type, 'bearer') == 0) {
-                $authorization = 'Bearer ' . $authorization;
+        if (!isset($authorization) && $this->accessToken instanceof AccessToken) {
+            if (strcasecmp($this->accessToken->type, 'bearer') == 0) {
+                $authorization = 'Bearer ' . $this->accessToken;
             }
         }
         if (isset($authorization)) {
@@ -290,16 +310,20 @@ class OAuthClient
         $this->log('Content type: %s', $type);
         $http->addHeader('Content-Type: ' . $type);
 
-        $response = $http->send();
-        $this->log('Response status: [%s] %s', $response->status_code, $response->response_reason);
-        if ($response->status_code < 200 || $response->status_code >= 300) {
-            $message = sprintf('An error has occured. The error code is %d and the message is "%s"',
-                $response->status_code, $response->response_reason);
+        $response       = $http->send();
+        $statusCode     = $response->getStatusCode();
+        $responseReason = $response->getResponseReason();
+        $this->log('Response status: [%s] %s', $statusCode, $responseReason);
+        if ($statusCode < 200 || $statusCode >= 300) {
             $details = $this->processResponse($response);
-            $this->log('Response headers: %s', print_r($response->headers, 1));
+            $this->log('Response headers: %s', print_r($response->getHeaders(), 1));
             $this->log('Exception details: %s', print_r($details, 1));
-            throw new OAuthException($message, $details);
+            throw new OAuthException(
+                "An error has occured. The error code is {$statusCode} and the message is \"{$responseReason}\"",
+                $details
+            );
         }
+
         return $response;
     }
 
@@ -309,10 +333,16 @@ class OAuthClient
      * @param array  $parameters
      * @param array  $options
      *
-     * @throws OAuthException
+     * @throws Exceptions\OAuthException
+     * @throws \UnexpectedValueException
+     * @return Response
      */
-    public function call($url, $method = Client::METHOD_GET, array $parameters = array(), array $options = array())
-    {
+    public function call(
+        $url,
+        $method = Client::METHOD_GET,
+        array $parameters = array(),
+        array $options = array()
+    ) {
         $access_token = $this->getAccessToken();
         if ($access_token == null) {
             throw new UnexpectedValueException('Access token is not set.');
@@ -320,7 +350,7 @@ class OAuthClient
         $version = $this->provider->version;
         switch (intval($version)) {
             case 1:
-                $options['oauth_token'] = (string)$access_token;
+                $options['oauth_token'] = (string) $access_token;
                 break;
             case 2:
                 if (strcmp($access_token->expiry, gmstrftime('%Y-%m-%d %H:%M:%S')) <= 0) {
@@ -332,12 +362,16 @@ class OAuthClient
                 }
 
                 if (strcasecmp($access_token->type, 'bearer')) {
-                    $url = Utils::addURLParams($url, array('access_token' => (string)$access_token));
+                    $url = Utils::addURLParams(
+                        $url,
+                        array('access_token' => (string) $access_token)
+                    );
                 }
                 break;
             default:
                 $this->versionNotSupported($version);
         }
+
         return $this->sendApiCall($url, $method, $parameters, $options);
     }
 
@@ -349,7 +383,7 @@ class OAuthClient
         $storage = $this->provider->getStorage();
         $this->log('Storing acces token: %s', $token);
         $storage->access_token = $token;
-        $this->access_token    = $token;
+        $this->accessToken     = $token;
     }
 
     /**
@@ -360,7 +394,7 @@ class OAuthClient
         $storage = $this->provider->getStorage();
         $this->log('Resetting stored acces token.');
         unset($storage->access_token);
-        unset($this->access_token);
+        unset($this->accessToken);
     }
 
     /**
@@ -368,15 +402,16 @@ class OAuthClient
      */
     public function getAccessToken()
     {
-        if (!isset($this->access_token)) {
+        if (!isset($this->accessToken)) {
             $storage = $this->provider->getStorage();
             if (!isset($storage->access_token)) {
                 return null;
             }
-            $this->access_token = $storage->access_token;
-            $this->log('Retrieving stored acces token: %s', $this->access_token);
+            $this->accessToken = $storage->access_token;
+            $this->log('Retrieving stored acces token: %s', $this->accessToken);
         }
-        return $this->access_token;
+
+        return $this->accessToken;
     }
 
     public function processResponse(Response $http_response, $callback = null)
@@ -384,7 +419,11 @@ class OAuthClient
         if (isset($this->provider->http_response_processing_callback) && $callback == null) {
             $callback = $this->provider->http_response_processing_callback;
         }
-        return $http_response->processBody($this->provider->http_response_processing_type, $callback);
+
+        return $http_response->processBody(
+            $this->provider->http_response_processing_type,
+            $callback
+        );
     }
 
     /**
@@ -394,7 +433,12 @@ class OAuthClient
     {
         $this->log('Processing access token request. Parameters: ' . print_r($values, 1));
         $access_token_url = $this->provider->getUrl('access_token', '', array(), $values);
-        $http_response    = $this->sendApiCall($access_token_url, Client::METHOD_POST, $values, array());
+        $http_response    = $this->sendApiCall(
+            $access_token_url,
+            Client::METHOD_POST,
+            $values,
+            array()
+        );
 
         $this->processResponse($http_response);
 
@@ -425,7 +469,7 @@ class OAuthClient
         );
         if (isset($this->scope)) {
             if (is_array($this->scope)) {
-                $values['scope'] = impolode(',', $this->scope);
+                $values['scope'] = implode(',', $this->scope);
             } else {
                 $values['scope'] = $this->scope;
             }
@@ -441,7 +485,7 @@ class OAuthClient
         $values = array(
             'client_id'     => $this->provider->client_id,
             'client_secret' => $this->provider->client_secret,
-            'refresh_token' => $this->access_token->refresh_token,
+            'refresh_token' => $this->accessToken->refresh_token,
             'grant_type'    => 'refresh_token'
         );
         if (isset($this->scope)) {
@@ -486,7 +530,9 @@ class OAuthClient
                         $this->resetAccessToken();
                     }
                 } elseif ($token !== $access_token->access_token) {
-                    $this->log('The token contained in the request does not match the stored token.');
+                    $this->log(
+                        'The token contained in the request does not match the stored token.'
+                    );
                     $this->log('Creating an empty access token.');
                     $access_token = new AccessToken();
                     $this->resetAccessToken();
@@ -494,7 +540,7 @@ class OAuthClient
                     $this->log('Exchanging the request token for an access token.');
                     $url     = $this->provider->getUrl('access_token');
                     $options = array(
-                        'oauth_token' => (string)$token,
+                        'oauth_token' => (string) $token,
                     );
                     if ($one_a) {
                         $this->log('Token verifier: ' . $verifier);
@@ -511,6 +557,7 @@ class OAuthClient
             //we're authorized
             if ($access_token->authorized) {
                 $this->log('The access token is authorized.');
+
                 return;
             }
         } else {
@@ -543,7 +590,7 @@ class OAuthClient
             $access_token = AccessToken::fromResponse($response, false);
             $this->storeAccessToken($access_token);
         }
-        $url_options = array('oauth_token' => (string)$access_token);
+        $url_options = array('oauth_token' => (string) $access_token);
         if (!$one_a) {
             $url_options['oauth_callback'] = $this->getRedirectUri();
         }
@@ -560,6 +607,7 @@ class OAuthClient
         $token = $this->getAccessToken();
         if ($token instanceof AccessToken && $token->authorized) {
             $this->log('An authorized access token is set.');
+
             return; //we already have a token, so stop here
         }
         $stored_state = $this->getStoredState();
@@ -627,8 +675,7 @@ class OAuthClient
      */
     private function versionNotSupported($version)
     {
-        $message = sprintf('OAuth %s is not supported.', $version);
-        $this->log($message);
-        throw new OAuthException($message);
+        $this->log('OAuth %s is not supported.', $version);
+        throw new OAuthException(sprintf('OAuth %s is not supported.', $version));
     }
 }

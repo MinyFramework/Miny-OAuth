@@ -9,10 +9,10 @@
 
 namespace Modules\OAuth;
 
+use InvalidArgumentException;
 use Miny\HTTP\Request;
 use Miny\Log\Log;
 use OutOfBoundsException;
-use RuntimeException;
 
 /**
  * This class is a wrapper that makes it simple to manage multiple remote OAuth providers.
@@ -42,8 +42,8 @@ class OAuthWrapper
     private $log;
 
     /**
-     * @param Request $request
-     * @param Log|null                 $log
+     * @param Request  $request
+     * @param Log|null $log
      */
     public function __construct(Request $request, Log $log = null)
     {
@@ -57,13 +57,13 @@ class OAuthWrapper
      * @param string             $provider The alias of the provider.
      * @param ProviderDescriptor $pd
      *
-     * @throws RuntimeException
+     * @throws InvalidArgumentException
      * @return OAuthClient
      */
     public function registerProvider($provider, ProviderDescriptor $pd)
     {
         if (!is_string($provider)) {
-            throw new RuntimeException('Parameter "provider" must be of string type.');
+            throw new InvalidArgumentException('$provider must be a string.');
         }
         $this->providers[$provider] = $pd;
 
@@ -73,12 +73,12 @@ class OAuthWrapper
     /**
      * @param string $provider
      *
-     * @throws RuntimeException
+     * @throws InvalidArgumentException
      */
     public function unregisterProvider($provider)
     {
         if (!is_string($provider)) {
-            throw new RuntimeException('Parameter "provider" must be of string type.');
+            throw new InvalidArgumentException('$provider must be a string.');
         }
         unset($this->providers[$provider]);
     }
@@ -86,17 +86,17 @@ class OAuthWrapper
     /**
      * @param string $provider
      *
-     * @throws \RuntimeException
      * @throws \OutOfBoundsException
+     * @throws \InvalidArgumentException
      * @return OAuthClient
      */
     public function getOAuthObject($provider)
     {
         if (!is_string($provider)) {
-            throw new RuntimeException('Provider name must be a string.');
+            throw new InvalidArgumentException('$provider must be a string.');
         }
         if (!isset($this->providers[$provider])) {
-            throw new OutOfBoundsException(sprintf('Provider "%s" is not set', $provider));
+            throw new OutOfBoundsException("Provider \"{$provider}\" is not set");
         }
         if (!isset($this->clients[$provider])) {
             $this->clients[$provider] = new OAuthClient($this->providers[$provider], $this->request, $this->log);

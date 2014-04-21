@@ -15,7 +15,7 @@ class OAuthException extends RuntimeException
 {
     private $details;
 
-    public function __construct($message, $details, $code = 0, Exception $previous = NULL)
+    public function __construct($message, $details = '', $code = 0, \Exception $previous = NULL)
     {
         $this->details = $details;
         parent::__construct($message, $code, $previous);

@@ -9,8 +9,8 @@
 
 namespace Modules\OAuth\HTTP;
 
-use Exception;
 use BadMethodCallException;
+use Exception;
 use Miny\Log\Log;
 use Modules\OAuth\Utils;
 use RuntimeException;
@@ -24,11 +24,11 @@ if (!function_exists('curl_init')) {
  */
 class Client
 {
-    const METHOD_GET = 'GET';
-    const METHOD_POST = 'POST';
-    const METHOD_PUT = 'PUT';
+    const METHOD_GET    = 'GET';
+    const METHOD_POST   = 'POST';
+    const METHOD_PUT    = 'PUT';
     const METHOD_DELETE = 'DELETE';
-    const USER_AGENT = 'MinyHTTP-Client 1.0';
+    const USER_AGENT    = 'MinyHTTP-Client 1.0';
 
     private static $log_keys = array(
         CURLOPT_URL            => 'URL: %s',
@@ -42,16 +42,16 @@ class Client
     );
     private $url;
     private $port;
-    private $ssl_cert;
-    private $user_agent;
+    private $sslCert;
+    private $userAgent;
     private $timeout;
     private $method = Client::METHOD_GET;
     private $headers = array('Expect:');
-    private $post_fields = array();
-    private $curl_handle;
+    private $postFields = array();
+    private $curlHandle;
     private $binary = false;
-    private $follow_location = false;
-    private $is_file_upload = false;
+    private $followLocation = false;
+    private $isFileUpload = false;
 
     /**
      * @var Log
@@ -60,8 +60,8 @@ class Client
 
     public function __construct($ssl_cert = null, Log $log = null)
     {
-        $this->ssl_cert = $ssl_cert;
-        $this->log = $log;
+        $this->sslCert = $ssl_cert;
+        $this->log     = $log;
     }
 
     protected function log($message)
@@ -87,7 +87,7 @@ class Client
         if (!Utils::isString($user_agent)) {
             throw new BadMethodCallException('User Agent must be a string or object with __toString method.');
         }
-        $this->user_agent = $user_agent;
+        $this->userAgent = $user_agent;
     }
 
     public function setRequestMethod($method)
@@ -105,7 +105,7 @@ class Client
 
     public function addPostField($field, $value)
     {
-        $this->post_fields[$field] = $value;
+        $this->postFields[$field] = $value;
     }
 
     public function addPostFields(array $fields)
@@ -121,7 +121,7 @@ class Client
         if ($type) {
             $value .= ';type=' . $type;
         }
-        $this->is_file_upload = true;
+        $this->isFileUpload = true;
         $this->addPostField($field, $value);
     }
 
@@ -132,7 +132,7 @@ class Client
 
     public function setFollowLocation($follow)
     {
-        $this->follow_location = (bool) $follow;
+        $this->followLocation = (bool) $follow;
     }
 
     public function setTimeout($timeout)
@@ -143,30 +143,24 @@ class Client
     /**
      *
      * @param array $curl_options
+     *
      * @return Response
      */
     public function send(array $curl_options = array())
     {
-        if (!isset($this->curl_handle)) {
-            $this->curl_handle = curl_init();
+        if (!isset($this->curlHandle)) {
+            $this->curlHandle = curl_init();
         }
-        $ch = $this->curl_handle;
+        $ch = $this->curlHandle;
 
-        $curl_options[CURLOPT_URL] = $this->url;
-        $curl_options[CURLOPT_USERAGENT] = $this->user_agent ? : self::USER_AGENT;
+        $curl_options[CURLOPT_URL]            = $this->url;
+        $curl_options[CURLOPT_USERAGENT]      = $this->userAgent ? : self::USER_AGENT;
         $curl_options[CURLOPT_RETURNTRANSFER] = true;
-        $curl_options[CURLOPT_HEADER] = true;
+        $curl_options[CURLOPT_HEADER]         = true;
         $curl_options[CURLOPT_BINARYTRANSFER] = $this->binary;
 
-        if ($this->port) {
-            $curl_options[CURLOPT_PORT] = $this->port;
-        } else {
-            if (substr($this->url, 0, 5) === 'https') {
-                $curl_options[CURLOPT_PORT] = 443;
-            } else {
-                $curl_options[CURLOPT_PORT] = 80;
-            }
-        }
+        $curl_options[CURLOPT_PORT] = $this->determinePort();
+
         if (isset($curl_options[CURLOPT_HTTPHEADER])) {
             foreach ($curl_options[CURLOPT_HTTPHEADER] as $header) {
                 $this->addHeader($header);
@@ -180,31 +174,35 @@ class Client
         }
 
         $curl_options[CURLOPT_CUSTOMREQUEST] = $this->method;
-        if (count($this->post_fields) > 0) {
-            if ($this->is_file_upload) {
-                $curl_options[CURLOPT_POSTFIELDS] = $this->post_fields;
+        if (count($this->postFields) > 0) {
+            if ($this->isFileUpload) {
+                $curl_options[CURLOPT_POSTFIELDS] = $this->postFields;
             } else {
-                $curl_options[CURLOPT_POSTFIELDS] = http_build_query($this->post_fields, '', '&');
+                $curl_options[CURLOPT_POSTFIELDS] = http_build_query($this->postFields, '', '&');
             }
         }
         $this->logRequest($curl_options);
+
         return $this->execute($ch, $curl_options);
     }
 
     private function logRequest(array $options)
     {
-        if ($this->log !== null) {
-            foreach ($options as $key => $option) {
-                if (!isset(self::$log_keys[$key])) {
-                    continue;
-                }
-                if (is_array($option)) {
-                    $option = print_r($option, 1);
-                } else if (is_bool($option)) {
+        if ($this->log === null) {
+            return;
+        }
+        foreach ($options as $key => $option) {
+            if (!isset(self::$log_keys[$key])) {
+                continue;
+            }
+            if (is_array($option)) {
+                $option = print_r($option, 1);
+            } else {
+                if (is_bool($option)) {
                     $option = $option ? 'yes' : 'no';
                 }
-                $this->log(self::$log_keys[$key], $option);
             }
+            $this->log(self::$log_keys[$key], $option);
         }
     }
 
@@ -214,10 +212,10 @@ class Client
         $result = curl_exec($ch);
 
         if (curl_errno($ch) == CURLE_SSL_CACERT) {
-            if ($this->ssl_cert == NULL) {
+            if ($this->sslCert == null) {
                 throw new RuntimeException('SSL certificate file is required but not set.');
             }
-            curl_setopt($ch, CURLOPT_CAINFO, $this->ssl_cert);
+            curl_setopt($ch, CURLOPT_CAINFO, $this->sslCert);
             $result = curl_exec($ch);
         }
 
@@ -227,7 +225,20 @@ class Client
             throw $e;
         }
         curl_close($ch);
+
         return new Response($result);
+    }
+
+    private function determinePort()
+    {
+        if ($this->port) {
+            return $this->port;
+        }
+        if (substr($this->url, 0, 5) === 'https') {
+            return 443;
+        }
+
+        return 80;
     }
 
 }

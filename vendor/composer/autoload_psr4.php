@@ -7,4 +7,5 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'Modules\\OAuth\\' => array($baseDir . '/src'),
+    'Miny\\' => array($vendorDir . '/miny/framework/src'),
 );

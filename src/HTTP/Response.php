@@ -18,6 +18,7 @@ use UnexpectedValueException;
 if (!function_exists('json_decode')) {
     throw new Exception('HTTP Response needs the JSON PHP extension.');
 }
+
 /**
  * Response
  *
@@ -25,21 +26,25 @@ if (!function_exists('json_decode')) {
  */
 class Response
 {
-    private $raw_response;
+    private $rawResponse;
     private $version;
-    private $status_code;
-    private $response_reason;
+    private $statusCode;
+    private $responseReason;
     private $headers;
     private $body;
-    private $body_processed = false;
 
-    const PROCESS_NONE = 0;
+    /**
+     * @var bool
+     */
+    private $bodyProcessed = false;
+
+    const PROCESS_NONE      = 0;
     const PROCESS_AUTOMATIC = 1;
-    const PROCESS_CUSTOM = 2;
+    const PROCESS_CUSTOM    = 2;
 
     public function __construct($result)
     {
-        $this->raw_response = $result;
+        $this->rawResponse = $result;
         $this->processMeta($result);
     }
 
@@ -51,12 +56,12 @@ class Response
             $header_part = $result;
         }
         $headers = explode("\r\n", $header_part);
-        $status = array_shift($headers);
+        $status  = array_shift($headers);
         list($version, $code, $reason) = explode(' ', $status, 3);
-        $this->version = $version;
-        $this->status_code = $code;
-        $this->response_reason = $reason;
-        $this->headers = array();
+        $this->version        = $version;
+        $this->statusCode     = $code;
+        $this->responseReason = $reason;
+        $this->headers        = array();
         foreach ($headers as $header) {
             $header = strtolower($header);
             list($name, $info) = explode(':', $header, 2);
@@ -93,6 +98,7 @@ class Response
             case 'text/html':
                 $response = array();
                 parse_str($this->body, $response);
+
                 return $response;
             default:
                 return $this->body;
@@ -102,9 +108,9 @@ class Response
     public function processBody($process_type = self::PROCESS_AUTOMATIC, $callback = null)
     {
         if (!isset($this->body)) {
-            return; //nothing to process
+            return ''; //nothing to process
         }
-        if (!$this->body_processed) {
+        if (!$this->bodyProcessed) {
             switch ($process_type) {
                 case self::PROCESS_NONE:
                     break;
@@ -118,31 +124,39 @@ class Response
                     $message = sprintf('Unknown processing type: "%s"', $process_type);
                     throw new UnexpectedValueException($message);
             }
-            $this->body_processed = true;
+            $this->bodyProcessed = true;
         }
+
         return $this->body;
     }
 
     public function __toString()
     {
-        return $this->raw_response;
+        return $this->rawResponse;
+    }
+
+    public function getBody()
+    {
+        return $this->body;
     }
 
     public function __get($key)
     {
         if (!is_string($key)) {
-            $message = sprintf('The key must be a string. %s given.', gettype($key));
-            throw new UnexpectedValueException($message);
+            $type = gettype($key);
+            throw new UnexpectedValueException("The key must be a string. {$type} given.");
         }
         if (!isset($this->$key)) {
-            throw new RuntimeException(sprintf('%s is not set.', $key));
+            throw new RuntimeException("{$key} is not set.");
         }
+
         return $this->$key;
     }
 
     public function hasHeader($header)
     {
         $header = strtolower($header);
+
         return isset($this->headers[$header]);
     }
 
@@ -150,9 +164,25 @@ class Response
     {
         $header = strtolower($header);
         if (!isset($this->headers[$header])) {
-            throw new OutOfBoundsException('Header not set: ' . $header);
+            throw new OutOfBoundsException("Header not set: {$header}");
         }
+
         return $this->headers[$header];
+    }
+
+    public function getHeaders()
+    {
+        return $this->headers;
+    }
+
+    public function getStatusCode()
+    {
+        return $this->statusCode;
+    }
+
+    public function getResponseReason()
+    {
+        return $this->responseReason;
     }
 
 }

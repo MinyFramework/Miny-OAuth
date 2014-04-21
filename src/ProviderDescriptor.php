@@ -9,6 +9,7 @@
 
 namespace Modules\OAuth;
 
+use InvalidArgumentException;
 use Modules\OAuth\HTTP\Client;
 use Modules\OAuth\HTTP\Response;
 use Modules\OAuth\Storage\iPersistentStorage;
@@ -83,24 +84,26 @@ class ProviderDescriptor
 
             foreach ($this->other_options as $key => $value) {
                 $new_key = '{' . strtoupper($key) . '}';
+
                 $this->replace_array[$new_key] = $value;
             }
         }
         $return = $this->replace_array;
         foreach ($options as $key => $value) {
-            $new_key = '{' . strtoupper($key) . '}';
+            $new_key          = '{' . strtoupper($key) . '}';
             $return[$new_key] = $value;
         }
+
         return $return;
     }
 
     public function addUrl($name, $url)
     {
         if (!is_string($name)) {
-            throw new UnexpectedValueException('The name must be a string. %s given.');
+            throw new UnexpectedValueException('$name must be a string.');
         }
         if (!is_string($url)) {
-            throw new UnexpectedValueException('The URL must be a string. %s given.');
+            throw new UnexpectedValueException('$url must be a string.');
         }
         $this->urls[$name] = $url;
     }
@@ -110,20 +113,19 @@ class ProviderDescriptor
      * @param string $name
      * @param string $path
      * @param array  $options
-     * @param array  $appended_parameters
+     * @param array  $parameters
      *
      * @throws \OutOfBoundsException
      * @throws \UnexpectedValueException
      * @return string
      */
-    public function getUrl($name, $path = '', array $options = array(), array $appended_parameters = null)
+    public function getUrl($name, $path = '', array $options = array(), array $parameters = null)
     {
         if (!is_string($name)) {
-            throw new UnexpectedValueException('The name must be a string.');
+            throw new UnexpectedValueException('$name must be a string.');
         }
         if (!isset($this->urls[$name])) {
-            $message = sprintf('URL "%s" is not set.', $name);
-            throw new OutOfBoundsException($message);
+            throw new OutOfBoundsException("URL \"{$name}\" is not set.");
         }
         $arr = $this->getReplacementArray($options);
         $url = $this->urls[$name];
@@ -133,17 +135,17 @@ class ProviderDescriptor
             }
             $url = $url . $path;
         }
-        if (!empty($appended_parameters)) {
-            $url = Utils::addURLParams($url, $appended_parameters);
+        if (!empty($parameters)) {
+            $url = Utils::addURLParams($url, $parameters);
         }
-        return Utils::replaceString($url, $arr);
+
+        return strtr($url, $arr);
     }
 
     public function __set($key, $value)
     {
         if (!is_string($key)) {
-            $message = sprintf('The key must be a string. %s given.', gettype($key));
-            throw new UnexpectedValueException($message);
+            throw new InvalidArgumentException('$key must be a string.');
         }
         //Check if the value is valid
         //e.g. version can only be one of these: 1.0, 1.0a, 2.0
@@ -167,11 +169,10 @@ class ProviderDescriptor
     public function __get($key)
     {
         if (!is_string($key)) {
-            $message = sprintf('The key must be a string. %s given.', gettype($key));
-            throw new UnexpectedValueException($message);
+            throw new InvalidArgumentException('$key must be a string.');
         }
         if (!isset($this->$key) && !isset($this->other_options[$key])) {
-            throw new RuntimeException(sprintf('Option %s is not set.', $key));
+            throw new RuntimeException("Option {$key }is not set.");
         }
         if (property_exists($this, $key)) {
             return $this->$key;
