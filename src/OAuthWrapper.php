@@ -24,12 +24,12 @@ class OAuthWrapper
     /**
      * @var array
      */
-    private $providers = array();
+    private $providers = [];
 
     /**
      * @var array
      */
-    private $clients = array();
+    private $clients = [];
 
     /**
      * @var array
@@ -42,7 +42,7 @@ class OAuthWrapper
     private $log;
 
     /**
-     * @param Request  $request
+     * @param Request $request
      * @param Log|null $log
      */
     public function __construct(Request $request, Log $log = null)
@@ -54,7 +54,7 @@ class OAuthWrapper
     }
 
     /**
-     * @param string             $provider The alias of the provider.
+     * @param string $provider The alias of the provider.
      * @param ProviderDescriptor $pd
      *
      * @throws InvalidArgumentException
@@ -104,5 +104,4 @@ class OAuthWrapper
 
         return $this->clients[$provider];
     }
-
 }

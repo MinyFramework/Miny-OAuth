@@ -15,35 +15,41 @@ namespace Modules\OAuth\Storage;
  *
  * @author Dániel Buga
  */
-class DummyStorage implements iPersistentStorage {
+class DummyStorage implements iPersistentStorage
+{
 
     /**
      * @var array
      */
     private $data;
 
-    public function __construct() {
-        $this->data = array();
+    public function __construct()
+    {
+        $this->data = [];
     }
 
-    public function toArray() {
+    public function toArray()
+    {
         return $this->data;
     }
 
-    public function &__get($key) {
+    public function &__get($key)
+    {
         return $this->data[$key];
     }
 
-    public function __isset($key) {
+    public function __isset($key)
+    {
         return isset($this->data[$key]);
     }
 
-    public function __set($key, $value) {
+    public function __set($key, $value)
+    {
         $this->data[$key] = $value;
     }
 
-    public function __unset($key) {
+    public function __unset($key)
+    {
         unset($this->data[$key]);
     }
-
 }

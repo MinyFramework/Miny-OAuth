@@ -32,8 +32,8 @@ class AccessToken implements Serializable
     /**
      *
      * @param array|\Modules\OAuth\HTTP\Response $response
-     * @param bool                               $authorized
-     * @param string                             $reused_refresh_token
+     * @param bool $authorized
+     * @param string $reused_refresh_token
      *
      * @throws Exceptions\OAuthException
      * @return AccessToken
@@ -45,14 +45,14 @@ class AccessToken implements Serializable
             $message = 'Data must contain an access_token.';
             throw new OAuthException ($message, $data);
         }
-        $access_token = new AccessToken;
+        $access_token               = new AccessToken;
         $access_token->access_token = isset($data['access_token']) ? $data['access_token'] : $data['oauth_token'];
-        $access_token->authorized = $authorized;
+        $access_token->authorized   = $authorized;
 
         //OAuth 2.0 style
         if (isset($data['expires']) || isset($data['expires_in'])) {
             $expires_str = isset($data['expires']) ? $data['expires'] : $data['expires_in'];
-            $expires = intval($expires_str);
+            $expires     = intval($expires_str);
             if ($expires == $expires_str) {
                 if ($expires > 0) {
                     $access_token->expiry = gmstrftime('%Y-%m-%d %H:%M:%S', time() + $expires);
@@ -73,7 +73,7 @@ class AccessToken implements Serializable
         //OAuth 1.0 style
         if (isset($data['oauth_expires']) || isset($data['oauth_expires_in'])) {
             $expires_str = isset($data['oauth_expires']) ? $data['oauth_expires'] : $data['oauth_expires_in'];
-            $expires = intval($expires_str);
+            $expires     = intval($expires_str);
             if ($expires == $expires_str) {
                 if ($expires > 0) {
                     $access_token->expiry = gmstrftime('%Y-%m-%d %H:%M:%S', time() + $expires);
@@ -93,14 +93,14 @@ class AccessToken implements Serializable
      */
     public function serialize()
     {
-        return serialize(array(
-            'access_token'  => $this->access_token,
-            'authorized'    => $this->authorized,
-            'expiry'        => $this->expiry,
+        return serialize([
+            'access_token' => $this->access_token,
+            'authorized' => $this->authorized,
+            'expiry' => $this->expiry,
             'refresh_token' => $this->refresh_token,
-            'type'          => $this->type,
-            'secret'        => $this->secret
-        ));
+            'type' => $this->type,
+            'secret' => $this->secret
+        ]);
     }
 
     /**
@@ -111,12 +111,12 @@ class AccessToken implements Serializable
     {
         $array = unserialize($serialized);
 
-        $this->access_token = $array['access_token'];
-        $this->authorized = $array['authorized'];
-        $this->expiry = $array['expiry'];
+        $this->access_token  = $array['access_token'];
+        $this->authorized    = $array['authorized'];
+        $this->expiry        = $array['expiry'];
         $this->refresh_token = $array['refresh_token'];
-        $this->type = $array['type'];
-        $this->secret = $array['secret'];
+        $this->type          = $array['type'];
+        $this->secret        = $array['secret'];
     }
 
     /**
@@ -127,5 +127,4 @@ class AccessToken implements Serializable
     {
         return $this->access_token;
     }
-
 }

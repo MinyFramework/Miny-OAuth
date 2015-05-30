@@ -16,6 +16,5 @@ class Module extends \Miny\Modules\Module
 
     public function init(BaseApplication $app)
     {
-
     }
 }

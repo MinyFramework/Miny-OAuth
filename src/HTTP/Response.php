@@ -38,9 +38,9 @@ class Response
      */
     private $bodyProcessed = false;
 
-    const PROCESS_NONE      = 0;
+    const PROCESS_NONE = 0;
     const PROCESS_AUTOMATIC = 1;
-    const PROCESS_CUSTOM    = 2;
+    const PROCESS_CUSTOM = 2;
 
     public function __construct($result)
     {
@@ -61,7 +61,7 @@ class Response
         $this->version        = $version;
         $this->statusCode     = $code;
         $this->responseReason = $reason;
-        $this->headers        = array();
+        $this->headers        = [];
         foreach ($headers as $header) {
             $header = strtolower($header);
             list($name, $info) = explode(':', $header, 2);
@@ -69,7 +69,7 @@ class Response
                 $this->headers[$name] = trim($info);
             } else {
                 if (!is_array($this->headers[$name])) {
-                    $this->headers[$name] = array($this->headers[$name]);
+                    $this->headers[$name] = [$this->headers[$name]];
                 }
                 $this->headers[$name][] = trim($info);
             }
@@ -96,7 +96,7 @@ class Response
             case 'application/x-www-form-urlencoded':
             case 'text/plain':
             case 'text/html':
-                $response = array();
+                $response = [];
                 parse_str($this->body, $response);
 
                 return $response;
@@ -184,5 +184,4 @@ class Response
     {
         return $this->responseReason;
     }
-
 }

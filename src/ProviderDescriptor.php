@@ -26,7 +26,7 @@ use UnexpectedValueException;
 class ProviderDescriptor
 {
     private $version;
-    private $other_options = array();
+    private $other_options = [];
     private $replace_array;
     private $http_response_processing_type = Response::PROCESS_AUTOMATIC;
     private $http_response_processing_callback;
@@ -37,7 +37,7 @@ class ProviderDescriptor
      * @var iPersistentStorage
      */
     private $persistent_storage;
-    private $urls = array();
+    private $urls = [];
     private $client_id;
     private $client_secret;
     private $api_key;
@@ -73,14 +73,14 @@ class ProviderDescriptor
         return $this->persistent_storage;
     }
 
-    private function getReplacementArray(array $options = array())
+    private function getReplacementArray(array $options = [])
     {
         if (!isset($this->replace_array)) {
-            $this->replace_array = array(
-                '{CLIENT_ID}'     => $this->client_id,
-                '{API_KEY}'       => $this->api_key,
+            $this->replace_array = [
+                '{CLIENT_ID}' => $this->client_id,
+                '{API_KEY}' => $this->api_key,
                 '{CLIENT_SECRET}' => $this->client_secret
-            );
+            ];
 
             foreach ($this->other_options as $key => $value) {
                 $new_key = '{' . strtoupper($key) . '}';
@@ -112,14 +112,14 @@ class ProviderDescriptor
      *
      * @param string $name
      * @param string $path
-     * @param array  $options
-     * @param array  $parameters
+     * @param array $options
+     * @param array $parameters
      *
      * @throws \OutOfBoundsException
      * @throws \UnexpectedValueException
      * @return string
      */
-    public function getUrl($name, $path = '', array $options = array(), array $parameters = null)
+    public function getUrl($name, $path = '', array $options = [], array $parameters = null)
     {
         if (!is_string($name)) {
             throw new UnexpectedValueException('$name must be a string.');
@@ -151,7 +151,7 @@ class ProviderDescriptor
         //e.g. version can only be one of these: 1.0, 1.0a, 2.0
         switch ($key) {
             case 'version':
-                if (!in_array($value, array('1.0', '1.0a', '2.0'))) {
+                if (!in_array($value, ['1.0', '1.0a', '2.0'])) {
                     throw new UnexpectedValueException('Version can only be 1.0, 1.0a or 2.0');
                 }
                 break;
@@ -185,5 +185,4 @@ class ProviderDescriptor
     {
         return isset($this->$key) || array_key_exists($key, $this->other_options);
     }
-
 }

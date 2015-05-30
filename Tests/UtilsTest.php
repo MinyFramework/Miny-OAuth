@@ -22,10 +22,10 @@ class UtilsTest extends \PHPUnit_Framework_TestCase
         $obj->bar      = new \stdClass();
         $obj->bar->baz = 'foobar';
 
-        $array = array(
+        $array = [
             'foo' => 'bar',
-            'bar' => array('baz' => 'foobar')
-        );
+            'bar' => ['baz' => 'foobar']
+        ];
 
         $this->assertEquals($array, Utils::convertObjectToArray($obj));
     }

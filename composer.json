@@ -1,22 +1,22 @@
 {
-    "name": "miny/oauth",
-    "description": "The OAuth package of the Miny Framework.",
-    "minimum-stability": "dev",
-    "license": "MIT",
-    "type": "library",
-    "require": {
-        "php": ">=5.3.3",
-        "miny/framework": "dev-master"
-    },
-    "authors": [
-        {
-            "name": "Dániel Buga",
-            "email": "bugadani@gmail.com"
-        }
-    ],
-    "autoload": {
-        "psr-4": {
-            "Modules\\OAuth\\": "src/"
-        }
+  "name": "miny/oauth",
+  "description": "The OAuth package of the Miny Framework.",
+  "minimum-stability": "dev",
+  "license": "MIT",
+  "type": "library",
+  "require": {
+    "php": ">=5.4",
+    "miny/framework": "dev-master"
+  },
+  "authors": [
+    {
+      "name": "Dániel Buga",
+      "email": "bugadani@gmail.com"
     }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Modules\\OAuth\\": "src/"
+    }
+  }
 }

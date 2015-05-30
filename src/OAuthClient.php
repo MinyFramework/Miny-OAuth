@@ -28,7 +28,7 @@ class OAuthClient
 {
     const SIGNATURE_PLAINTEXT = 'PLAINTEXT';
     const SIGNATURE_HMAC_SHA1 = 'HMAC-SHA1';
-    const SIGNATURE_RSA_SHA1  = 'RSA-SHA1';
+    const SIGNATURE_RSA_SHA1 = 'RSA-SHA1';
 
     /**
      *
@@ -56,8 +56,8 @@ class OAuthClient
 
     /**
      * @param ProviderDescriptor $pd
-     * @param array              $request
-     * @param \Miny\Log\Log      $log
+     * @param array $request
+     * @param \Miny\Log\Log $log
      */
     public function __construct(ProviderDescriptor $pd, array $request, Log $log = null)
     {
@@ -78,12 +78,12 @@ class OAuthClient
      *
      * @param string $name
      * @param string $path
-     * @param array  $options    Replacement array
-     * @param array  $parameters Appended parameters
+     * @param array $options Replacement array
+     * @param array $parameters Appended parameters
      *
      * @return string
      */
-    public function getUrl($name, $path = '', array $options = array(), array $parameters = array())
+    public function getUrl($name, $path = '', array $options = [], array $parameters = [])
     {
         return $this->provider->getUrl($name, $path, $options, $parameters);
     }
@@ -97,7 +97,7 @@ class OAuthClient
      */
     protected function getRequestVar($name)
     {
-        $allowed = array(
+        $allowed = [
             'code',
             'error',
             'state',
@@ -105,7 +105,7 @@ class OAuthClient
             'oauth_verifier',
             'denied',
             'path'
-        );
+        ];
         if (!in_array($name, $allowed)) {
             throw new UnexpectedValueException("Request variable \"{$name}\" can not be accessed from this scope.");
         }
@@ -142,7 +142,7 @@ class OAuthClient
         $sign_values = array_merge($values, $parameters);
         $u           = parse_url($url, PHP_URL_QUERY);
         if (isset($u)) {
-            $q = array();
+            $q = [];
             parse_str($u, $q);
             foreach ($q as $parameter => $value) {
                 $sign_values[$parameter] = $value;
@@ -150,7 +150,7 @@ class OAuthClient
         }
         ksort($sign_values);
         $base_str .= Utils::encode(http_build_query($sign_values, '', '&'));
-        $base_str = strtr($base_str, array('%2B' => '%2520'));
+        $base_str = strtr($base_str, ['%2B' => '%2520']);
 
         $this->log('Signature base string: %s', $base_str);
 
@@ -222,8 +222,8 @@ class OAuthClient
      *
      * @param string $url
      * @param string $method
-     * @param array  $parameters
-     * @param array  $options
+     * @param array $parameters
+     * @param array $options
      *
      * @throws Exceptions\OAuthException
      *
@@ -232,9 +232,10 @@ class OAuthClient
     public function sendApiCall(
         $url,
         $method = Client::METHOD_GET,
-        array $parameters = array(),
-        array $options = array()
-    ) {
+        array $parameters = [],
+        array $options = []
+    )
+    {
         $cert_file = isset($this->provider->certificate_file) ? $this->provider->certificate_file : null;
         $http      = new Client($cert_file, $this->log);
 
@@ -247,19 +248,19 @@ class OAuthClient
             $type = 'application/x-www-form-urlencoded';
         }
         if (intval($version) == 1) {
-            $post_values = array();
-            $values      = array(
-                'oauth_consumer_key'     => $this->provider->client_id,
-                'oauth_nonce'            => md5(uniqid(rand(), true)),
+            $post_values = [];
+            $values      = [
+                'oauth_consumer_key' => $this->provider->client_id,
+                'oauth_nonce' => md5(uniqid(rand(), true)),
                 'oauth_signature_method' => $this->provider->signature_method,
-                'oauth_timestamp'        => time(),
-                'oauth_version'          => '1.0'
-            );
-            $move_keys   = array(
+                'oauth_timestamp' => time(),
+                'oauth_version' => '1.0'
+            ];
+            $move_keys   = [
                 'oauth_token',
                 'oauth_verifier',
                 'oauth_callback'
-            );
+            ];
             foreach ($move_keys as $key) {
                 if (isset($options[$key])) {
                     $values[$key] = $options[$key];
@@ -267,7 +268,7 @@ class OAuthClient
                 }
             }
             //File upload support
-            $files = isset($options['files']) ? $options['files'] : array();
+            $files = isset($options['files']) ? $options['files'] : [];
             if (count($files) > 0) {
                 $method     = 'POST'; //force method to be POST
                 $type       = 'multipart/form-data';
@@ -276,7 +277,7 @@ class OAuthClient
                 if ($type == 'application/x-www-form-urlencoded') {
                     if ($this->provider->url_parameters && count($parameters)) {
                         $url        = Utils::addURLParams($url, $parameters);
-                        $parameters = array();
+                        $parameters = [];
                     }
                 }
             }
@@ -330,8 +331,8 @@ class OAuthClient
     /**
      * @param string $url
      * @param string $method
-     * @param array  $parameters
-     * @param array  $options
+     * @param array $parameters
+     * @param array $options
      *
      * @throws Exceptions\OAuthException
      * @throws \UnexpectedValueException
@@ -340,9 +341,10 @@ class OAuthClient
     public function call(
         $url,
         $method = Client::METHOD_GET,
-        array $parameters = array(),
-        array $options = array()
-    ) {
+        array $parameters = [],
+        array $options = []
+    )
+    {
         $access_token = $this->getAccessToken();
         if ($access_token == null) {
             throw new UnexpectedValueException('Access token is not set.');
@@ -350,7 +352,7 @@ class OAuthClient
         $version = $this->provider->version;
         switch (intval($version)) {
             case 1:
-                $options['oauth_token'] = (string) $access_token;
+                $options['oauth_token'] = (string)$access_token;
                 break;
             case 2:
                 if (strcmp($access_token->expiry, gmstrftime('%Y-%m-%d %H:%M:%S')) <= 0) {
@@ -364,7 +366,7 @@ class OAuthClient
                 if (strcasecmp($access_token->type, 'bearer')) {
                     $url = Utils::addURLParams(
                         $url,
-                        array('access_token' => (string) $access_token)
+                        ['access_token' => (string)$access_token]
                     );
                 }
                 break;
@@ -429,15 +431,15 @@ class OAuthClient
     /**
      * @param array $values
      */
-    public function processTokenRequest(array $values = array())
+    public function processTokenRequest(array $values = [])
     {
         $this->log('Processing access token request. Parameters: ' . print_r($values, 1));
-        $access_token_url = $this->provider->getUrl('access_token', '', array(), $values);
+        $access_token_url = $this->provider->getUrl('access_token', '', [], $values);
         $http_response    = $this->sendApiCall(
             $access_token_url,
             Client::METHOD_POST,
             $values,
-            array()
+            []
         );
 
         $this->processResponse($http_response);
@@ -460,13 +462,13 @@ class OAuthClient
      */
     public function fetchAccessToken($access_code)
     {
-        $values = array(
-            'code'          => $access_code,
-            'client_id'     => $this->provider->client_id,
+        $values = [
+            'code' => $access_code,
+            'client_id' => $this->provider->client_id,
             'client_secret' => $this->provider->client_secret,
-            'redirect_uri'  => $this->getRedirectUri(),
-            'grant_type'    => 'authorization_code'
-        );
+            'redirect_uri' => $this->getRedirectUri(),
+            'grant_type' => 'authorization_code'
+        ];
         if (isset($this->scope)) {
             if (is_array($this->scope)) {
                 $values['scope'] = implode(',', $this->scope);
@@ -482,12 +484,12 @@ class OAuthClient
      */
     public function refreshToken()
     {
-        $values = array(
-            'client_id'     => $this->provider->client_id,
+        $values = [
+            'client_id' => $this->provider->client_id,
             'client_secret' => $this->provider->client_secret,
             'refresh_token' => $this->accessToken->refresh_token,
-            'grant_type'    => 'refresh_token'
-        );
+            'grant_type' => 'refresh_token'
+        ];
         if (isset($this->scope)) {
             $values['scope'] = $this->scope;
         }
@@ -539,15 +541,15 @@ class OAuthClient
                 } else {
                     $this->log('Exchanging the request token for an access token.');
                     $url     = $this->provider->getUrl('access_token');
-                    $options = array(
-                        'oauth_token' => (string) $token,
-                    );
+                    $options = [
+                        'oauth_token' => (string)$token,
+                    ];
                     if ($one_a) {
                         $this->log('Token verifier: ' . $verifier);
                         $options['oauth_verifier'] = $verifier;
                     }
                     $method   = strtoupper($this->provider->token_request_method);
-                    $response = $this->sendApiCall($url, $method, array(), $options);
+                    $response = $this->sendApiCall($url, $method, [], $options);
 
                     $this->processResponse($response);
                     $access_token = AccessToken::fromResponse($response);
@@ -570,7 +572,7 @@ class OAuthClient
         if (!$access_token->authorized) {
             $this->log('The access token is a newly created empty token.');
             $this->log('Request an access token.');
-            $values = array();
+            $values = [];
             if (isset($this->provider->scope) && !empty($this->provider->scope)) {
                 if (is_array($this->provider->scope)) {
                     $values['scope'] = implode(',', $this->provider->scope);
@@ -580,22 +582,22 @@ class OAuthClient
                 $this->log('Access token scope: ' . $values['scope']);
             }
             $url      = $this->provider->getUrl('request_token', '', $values);
-            $options  = array(
+            $options  = [
                 'oauth_callback' => $this->getRedirectUri()
-            );
+            ];
             $method   = strtoupper($this->provider->token_request_method);
-            $response = $this->sendApiCall($url, $method, array(), $options);
+            $response = $this->sendApiCall($url, $method, [], $options);
 
             $this->processResponse($response);
             $access_token = AccessToken::fromResponse($response, false);
             $this->storeAccessToken($access_token);
         }
-        $url_options = array('oauth_token' => (string) $access_token);
+        $url_options = ['oauth_token' => (string)$access_token];
         if (!$one_a) {
             $url_options['oauth_callback'] = $this->getRedirectUri();
         }
         $this->log('Sending access token to be authorized by user.');
-        $url = $this->provider->getURL('dialog', '', array(), $url_options);
+        $url = $this->provider->getURL('dialog', '', [], $url_options);
 
         $this->log('Redirecting to ' . $url);
         Utils::redirect($url);
@@ -624,10 +626,10 @@ class OAuthClient
             }
             $this->fetchAccessToken($code);
         } else {
-            $values = array(
-                'state'        => $stored_state,
+            $values = [
+                'state' => $stored_state,
                 'redirect_uri' => $this->getRedirectUri()
-            );
+            ];
             $this->log('Request state does not match the stored state.');
             $this->log('Request a new access code.');
             if (isset($this->provider->scope) && !empty($this->provider->scope)) {

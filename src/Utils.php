@@ -42,7 +42,7 @@ class Utils
      */
     static public function convertObjectToArray($obj)
     {
-        $arr = array();
+        $arr = [];
         foreach ($obj as $k => $v) {
             if (is_object($v) || is_array($v)) {
                 $v = self::convertObjectToArray($v);
@@ -68,7 +68,7 @@ class Utils
     /**
      *
      * @param string $url
-     * @param array  $params
+     * @param array $params
      * @param string $numeric_prefix
      * @param string $separator
      *
@@ -100,11 +100,10 @@ class Utils
 
         return strtr(
             rawurlencode($value),
-            array(
+            [
                 '%7E' => '~',
-                '+'   => ' '
-            )
+                '+' => ' '
+            ]
         );
     }
-
 }

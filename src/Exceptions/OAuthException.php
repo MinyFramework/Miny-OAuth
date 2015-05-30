@@ -25,5 +25,4 @@ class OAuthException extends RuntimeException
     {
         return $this->details;
     }
-
 }

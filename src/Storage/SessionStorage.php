@@ -36,16 +36,16 @@ class SessionStorage implements iPersistentStorage
     public function __construct($provider_name, Session $session)
     {
         if (!isset($session['oauth'])) {
-            $session['oauth'] = array();
+            $session['oauth'] = [];
         }
         if (!isset($session['oauth'][$provider_name])) {
-            $oauth = $session['oauth'];
-            $oauth[$provider_name] = array();
-            $session['oauth'] = $oauth;
+            $oauth                 = $session['oauth'];
+            $oauth[$provider_name] = [];
+            $session['oauth']      = $oauth;
         }
 
         $this->provider_name = $provider_name;
-        $this->session = $session;
+        $this->session       = $session;
     }
 
     public function &__get($key)
@@ -70,5 +70,4 @@ class SessionStorage implements iPersistentStorage
     {
         unset($this->session['oauth'][$this->provider_name][$key]);
     }
-
 }

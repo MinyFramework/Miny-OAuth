@@ -24,30 +24,30 @@ if (!function_exists('curl_init')) {
  */
 class Client
 {
-    const METHOD_GET    = 'GET';
-    const METHOD_POST   = 'POST';
-    const METHOD_PUT    = 'PUT';
+    const METHOD_GET = 'GET';
+    const METHOD_POST = 'POST';
+    const METHOD_PUT = 'PUT';
     const METHOD_DELETE = 'DELETE';
-    const USER_AGENT    = 'MinyHTTP-Client 1.0';
+    const USER_AGENT = 'MinyHTTP-Client 1.0';
 
-    private static $log_keys = array(
-        CURLOPT_URL            => 'URL: %s',
-        CURLOPT_USERAGENT      => 'User Agent: %s',
+    private static $log_keys = [
+        CURLOPT_URL => 'URL: %s',
+        CURLOPT_USERAGENT => 'User Agent: %s',
         CURLOPT_BINARYTRANSFER => 'Binary: %s',
-        CURLOPT_PORT           => 'Port: %s',
-        CURLOPT_HTTPHEADER     => 'Headers: %s',
-        CURLOPT_TIMEOUT        => 'Timeout: %s',
-        CURLOPT_CUSTOMREQUEST  => 'Method: %s',
-        CURLOPT_POSTFIELDS     => 'Post fields: %s'
-    );
+        CURLOPT_PORT => 'Port: %s',
+        CURLOPT_HTTPHEADER => 'Headers: %s',
+        CURLOPT_TIMEOUT => 'Timeout: %s',
+        CURLOPT_CUSTOMREQUEST => 'Method: %s',
+        CURLOPT_POSTFIELDS => 'Post fields: %s'
+    ];
     private $url;
     private $port;
     private $sslCert;
     private $userAgent;
     private $timeout;
     private $method = Client::METHOD_GET;
-    private $headers = array('Expect:');
-    private $postFields = array();
+    private $headers = ['Expect:'];
+    private $postFields = [];
     private $curlHandle;
     private $binary = false;
     private $followLocation = false;
@@ -127,12 +127,12 @@ class Client
 
     public function setBinaryResult($binary)
     {
-        $this->binary = (bool) $binary;
+        $this->binary = (bool)$binary;
     }
 
     public function setFollowLocation($follow)
     {
-        $this->followLocation = (bool) $follow;
+        $this->followLocation = (bool)$follow;
     }
 
     public function setTimeout($timeout)
@@ -146,7 +146,7 @@ class Client
      *
      * @return Response
      */
-    public function send(array $curl_options = array())
+    public function send(array $curl_options = [])
     {
         if (!isset($this->curlHandle)) {
             $this->curlHandle = curl_init();
@@ -154,7 +154,7 @@ class Client
         $ch = $this->curlHandle;
 
         $curl_options[CURLOPT_URL]            = $this->url;
-        $curl_options[CURLOPT_USERAGENT]      = $this->userAgent ? : self::USER_AGENT;
+        $curl_options[CURLOPT_USERAGENT]      = $this->userAgent ?: self::USER_AGENT;
         $curl_options[CURLOPT_RETURNTRANSFER] = true;
         $curl_options[CURLOPT_HEADER]         = true;
         $curl_options[CURLOPT_BINARYTRANSFER] = $this->binary;
@@ -240,5 +240,4 @@ class Client
 
         return 80;
     }
-
 }
