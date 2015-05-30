@@ -17,7 +17,7 @@ use Miny\HTTP\Session;
  *
  * @author Dániel Buga
  */
-class SessionStorage implements iPersistentStorage
+class SessionStorage implements AccessTokenStorageInterface
 {
     /**
      * @var Session
@@ -27,47 +27,51 @@ class SessionStorage implements iPersistentStorage
     /**
      * @var string
      */
-    private $provider_name;
+    private $providerName;
 
     /**
-     * @param string $provider_name
+     * @param string $providerName
      * @param Session $session
      */
-    public function __construct($provider_name, Session $session)
+    public function __construct($providerName, Session $session)
     {
         if (!isset($session['oauth'])) {
             $session['oauth'] = [];
         }
-        if (!isset($session['oauth'][$provider_name])) {
-            $oauth                 = $session['oauth'];
-            $oauth[$provider_name] = [];
-            $session['oauth']      = $oauth;
+        if (!isset($session['oauth'][$providerName])) {
+            $oauth                = $session['oauth'];
+            $oauth[$providerName] = [];
+            $session['oauth']     = $oauth;
         }
 
-        $this->provider_name = $provider_name;
-        $this->session       = $session;
+        $this->providerName = $providerName;
+        $this->session      = $session;
     }
 
-    public function &__get($key)
+    public function &get($key, $remove = true)
     {
-        return $this->session['oauth'][$this->provider_name][$key];
+        $value =& $this->session['oauth'][$this->providerName][$key];
+        if ($remove) {
+            $this->remove($key);
+        }
+        return $value;
     }
 
-    public function __isset($key)
+    public function has($key)
     {
-        if (isset($this->session['oauth'][$this->provider_name])) {
-            return isset($this->session['oauth'][$this->provider_name][$key]);
+        if (isset($this->session['oauth'][$this->providerName])) {
+            return isset($this->session['oauth'][$this->providerName][$key]);
         }
         return false;
     }
 
-    public function __set($key, $value)
+    public function set($key, $value)
     {
-        $this->session['oauth'][$this->provider_name][$key] = $value;
+        $this->session['oauth'][$this->providerName][$key] = $value;
     }
 
-    public function __unset($key)
+    public function remove($key)
     {
-        unset($this->session['oauth'][$this->provider_name][$key]);
+        unset($this->session['oauth'][$this->providerName][$key]);
     }
 }

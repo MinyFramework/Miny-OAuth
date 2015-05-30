@@ -2,15 +2,18 @@
 
 namespace Modules\OAuth;
 
+use Modules\OAuth\Client\OAuth10;
+use Modules\OAuth\ProviderDescriptor\OAuth10Descriptor;
+use Modules\OAuth\SignatureMethod\SignatureMethodFactory;
 use Modules\OAuth\Storage\DummyStorage;
 
 class OAuthClientTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @var OAuthClient
+     * @var OAuth10
      */
     protected $object;
-    protected $values = [
+    protected $values     = [
         'oauth_consumer_key' => 'HkmZyQHb4pGYk99E8965w',
         'oauth_token' => '239950953-bl66iuLPi2vedrzAGZhetvlGQnxREFa5oc9Le5wg',
         'oauth_nonce' => 'c23736d774312351c0c735af0f7026f3',
@@ -24,35 +27,15 @@ class OAuthClientTest extends \PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        $descriptor                   = new ProviderDescriptor(new DummyStorage());
-        $descriptor->client_secret    = '9fY7oJMTpDeQZkF5xyrP78pdaws3wgsckUBM7oXFUso';
-        $descriptor->signature_method = 'HMAC-SHA1';
+        $descriptor                  = new OAuth10Descriptor(new DummyStorage());
+        $descriptor->clientSecret    = '9fY7oJMTpDeQZkF5xyrP78pdaws3wgsckUBM7oXFUso';
+        $descriptor->signatureMethod = SignatureMethodFactory::SIGNATURE_HMAC_SHA1;
 
         $token               = new AccessToken();
-        $this->object        = new OAuthClient($descriptor, []);
+        $this->object        = new OAuth10($descriptor, []);
         $token->access_token = '239950953-bl66iuLPi2vedrzAGZhetvlGQnxREFa5oc9Le5wg';
         $token->secret       = '1vZJeOoTXi2mcvU1abnbd4sfhEaaKGJEZQtOHZbL8xyRr';
         $this->object->storeAccessToken($token);
-    }
-
-    public function testSignatureBase()
-    {
-        $expected = 'POST&https%3A%2F%2Fapi.twitter.com%2F1.1%2Fstatuses%2Fupdate.json&oauth_consumer_key%3DHkmZyQHb4pGYk99E8965w%26oauth_nonce%3Dc23736d774312351c0c735af0f7026f3%26oauth_signature_method%3DHMAC-SHA1%26oauth_timestamp%3D1384280790%26oauth_token%3D239950953-bl66iuLPi2vedrzAGZhetvlGQnxREFa5oc9Le5wg%26oauth_version%3D1.0%26status%3DMaybe%2520he%2527ll%2520finally%2520find%2520his%2520keys.%2520%2523peterfalk';
-
-        $url    = 'https://api.twitter.com/1.1/statuses/update.json';
-        $actual = $this->object->generateSignatureBase('POST', $url, $this->values, $this->parameters);
-        $this->assertEquals($expected, $actual);
-    }
-
-    /**
-     * @depends testSignatureBase
-     */
-    public function testSignature()
-    {
-        $expected = 'gdj38Xw54DZsQ3UVWGcr+5X+yiM=';
-        $url      = 'https://api.twitter.com/1.1/statuses/update.json';
-        $actual   = $this->object->signRequest('POST', $url, $this->values, $this->parameters);
-        $this->assertEquals($expected, $actual);
     }
 
     public function testAuthorizationHeader()
@@ -63,5 +46,3 @@ class OAuthClientTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($expected, $actual);
     }
 }
-
-?>

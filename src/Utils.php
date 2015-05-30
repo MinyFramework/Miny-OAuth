@@ -34,34 +34,14 @@ class Utils
     }
 
     /**
-     * Converts an object to an array.
-     *
-     * @param mixed $obj
-     *
-     * @return array
-     */
-    static public function convertObjectToArray($obj)
-    {
-        $arr = [];
-        foreach ($obj as $k => $v) {
-            if (is_object($v) || is_array($v)) {
-                $v = self::convertObjectToArray($v);
-            }
-            $arr[$k] = $v;
-        }
-
-        return $arr;
-    }
-
-    /**
      * Redirects the user to $url.
      *
      * @param string $url
      */
     static public function redirect($url)
     {
-        Header('HTTP/1.0 302 OAuth Redirection');
-        Header('Location: ' . $url);
+        header('HTTP/1.0 302 OAuth Redirection');
+        header('Location: ' . $url);
         exit;
     }
 
@@ -91,11 +71,7 @@ class Utils
     public static function encode($value)
     {
         if (is_array($value)) {
-            foreach ($value as $k => $v) {
-                $value[$k] = self::encode($v);
-            }
-
-            return $value;
+            return array_map('self::encode', $value);
         }
 
         return strtr(

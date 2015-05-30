@@ -11,7 +11,6 @@ namespace Modules\OAuth\HTTP;
 
 use BadMethodCallException;
 use Exception;
-use Miny\Log\Log;
 use Modules\OAuth\Utils;
 use RuntimeException;
 
@@ -30,16 +29,6 @@ class Client
     const METHOD_DELETE = 'DELETE';
     const USER_AGENT = 'MinyHTTP-Client 1.0';
 
-    private static $log_keys = [
-        CURLOPT_URL => 'URL: %s',
-        CURLOPT_USERAGENT => 'User Agent: %s',
-        CURLOPT_BINARYTRANSFER => 'Binary: %s',
-        CURLOPT_PORT => 'Port: %s',
-        CURLOPT_HTTPHEADER => 'Headers: %s',
-        CURLOPT_TIMEOUT => 'Timeout: %s',
-        CURLOPT_CUSTOMREQUEST => 'Method: %s',
-        CURLOPT_POSTFIELDS => 'Post fields: %s'
-    ];
     private $url;
     private $port;
     private $sslCert;
@@ -53,23 +42,9 @@ class Client
     private $followLocation = false;
     private $isFileUpload = false;
 
-    /**
-     * @var Log
-     */
-    private $log;
-
-    public function __construct($ssl_cert = null, Log $log = null)
+    public function __construct($ssl_cert = null)
     {
         $this->sslCert = $ssl_cert;
-        $this->log     = $log;
-    }
-
-    protected function log($message)
-    {
-        if (isset($this->log)) {
-            $args = array_slice(func_get_args(), 1);
-            $this->log->write(Log::DEBUG, 'OAuth', $message, $args);
-        }
     }
 
     public function setUrl($url)
@@ -162,9 +137,7 @@ class Client
         $curl_options[CURLOPT_PORT] = $this->determinePort();
 
         if (isset($curl_options[CURLOPT_HTTPHEADER])) {
-            foreach ($curl_options[CURLOPT_HTTPHEADER] as $header) {
-                $this->addHeader($header);
-            }
+            array_walk($curl_options[CURLOPT_HTTPHEADER], [$this, 'addHeader']);
         }
         if ($this->headers) {
             $curl_options[CURLOPT_HTTPHEADER] = $this->headers;
@@ -181,29 +154,8 @@ class Client
                 $curl_options[CURLOPT_POSTFIELDS] = http_build_query($this->postFields, '', '&');
             }
         }
-        $this->logRequest($curl_options);
 
         return $this->execute($ch, $curl_options);
-    }
-
-    private function logRequest(array $options)
-    {
-        if ($this->log === null) {
-            return;
-        }
-        foreach ($options as $key => $option) {
-            if (!isset(self::$log_keys[$key])) {
-                continue;
-            }
-            if (is_array($option)) {
-                $option = print_r($option, 1);
-            } else {
-                if (is_bool($option)) {
-                    $option = $option ? 'yes' : 'no';
-                }
-            }
-            $this->log(self::$log_keys[$key], $option);
-        }
     }
 
     private function execute($ch, array $curl_options)

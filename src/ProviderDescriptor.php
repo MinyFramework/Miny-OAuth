@@ -10,9 +10,8 @@
 namespace Modules\OAuth;
 
 use InvalidArgumentException;
-use Modules\OAuth\HTTP\Client;
 use Modules\OAuth\HTTP\Response;
-use Modules\OAuth\Storage\iPersistentStorage;
+use Modules\OAuth\Storage\AccessTokenStorageInterface;
 use OutOfBoundsException;
 use RuntimeException;
 use UnexpectedValueException;
@@ -25,70 +24,59 @@ use UnexpectedValueException;
  */
 class ProviderDescriptor
 {
-    private $version;
-    private $other_options = [];
-    private $replace_array;
-    private $http_response_processing_type = Response::PROCESS_AUTOMATIC;
-    private $http_response_processing_callback;
-    private $scope;
+    private $replaceArray;
+    private $otherOptions = [];
+    private $urls         = [];
+
+    public $httpResponseProcessingType = Response::PROCESS_AUTOMATIC;
+    public $httpResponseProcessingCallback;
+
+    public $clientId;
+    public $clientSecret;
+    public $apiKey;
+    public $scope;
+
+    public $curlOptions = [];
+    public $certificateFile;
 
     /**
-     *
-     * @var iPersistentStorage
+     * @var AccessTokenStorageInterface
      */
-    private $persistent_storage;
-    private $urls = [];
-    private $client_id;
-    private $client_secret;
-    private $api_key;
-    private $curl_options;
-    private $default_access_token_type;
-    private $certificate_file;
+    private $persistentStorage;
 
     /**
-     * These are not used in OAuth 2.0
+     * @param AccessTokenStorageInterface $storage
      */
-    private $signature_method = OAuthClient::SIGNATURE_HMAC_SHA1;
-    private $token_request_method = Client::METHOD_GET;
-    private $accept = '*/*';
-    private $url_parameters = false;
-    private $post_values_in_uri = false;
-    private $authorization_header = false;
-
-    /**
-     *
-     * @param iPersistentStorage $persistent_storage
-     */
-    public function __construct(iPersistentStorage $persistent_storage)
+    public function __construct(AccessTokenStorageInterface $storage)
     {
-        $this->persistent_storage = $persistent_storage;
+        $this->persistentStorage = $storage;
     }
 
     /**
      *
-     * @return iPersistentStorage
+     * @return AccessTokenStorageInterface
      */
     public function getStorage()
     {
-        return $this->persistent_storage;
+        return $this->persistentStorage;
     }
 
     private function getReplacementArray(array $options = [])
     {
-        if (!isset($this->replace_array)) {
-            $this->replace_array = [
-                '{CLIENT_ID}' => $this->client_id,
-                '{API_KEY}' => $this->api_key,
-                '{CLIENT_SECRET}' => $this->client_secret
+        if (!isset($this->replaceArray)) {
+            $this->replaceArray = [
+                '{CLIENT_ID}' => $this->clientId,
+                '{API_KEY}' => $this->apiKey,
+                '{CLIENT_SECRET}' => $this->clientSecret
             ];
 
-            foreach ($this->other_options as $key => $value) {
+            foreach ($this->otherOptions as $key => $value) {
                 $new_key = '{' . strtoupper($key) . '}';
 
-                $this->replace_array[$new_key] = $value;
+                $this->replaceArray[$new_key] = $value;
             }
         }
-        $return = $this->replace_array;
+        $return = $this->replaceArray;
         foreach ($options as $key => $value) {
             $new_key          = '{' . strtoupper($key) . '}';
             $return[$new_key] = $value;
@@ -142,27 +130,27 @@ class ProviderDescriptor
         return strtr($url, $arr);
     }
 
+    public function getScopeString()
+    {
+        if (is_array($this->scope)) {
+            return implode(',', $this->scope);
+        } else {
+            return $this->scope;
+        }
+    }
+
     public function __set($key, $value)
     {
         if (!is_string($key)) {
             throw new InvalidArgumentException('$key must be a string.');
         }
-        //Check if the value is valid
-        //e.g. version can only be one of these: 1.0, 1.0a, 2.0
-        switch ($key) {
-            case 'version':
-                if (!in_array($value, ['1.0', '1.0a', '2.0'])) {
-                    throw new UnexpectedValueException('Version can only be 1.0, 1.0a or 2.0');
-                }
-                break;
-            //TODO
-        }
+
         //Let's unset the array that holds the replace values when something actually changes.
-        unset($this->replace_array);
+        unset($this->replaceArray);
         if (property_exists($this, $key)) {
             $this->$key = $value;
         } else {
-            $this->other_options[$key] = $value;
+            $this->otherOptions[$key] = $value;
         }
     }
 
@@ -171,18 +159,18 @@ class ProviderDescriptor
         if (!is_string($key)) {
             throw new InvalidArgumentException('$key must be a string.');
         }
-        if (!isset($this->$key) && !isset($this->other_options[$key])) {
+        if (!isset($this->$key) && !isset($this->otherOptions[$key])) {
             throw new RuntimeException("Option {$key }is not set.");
         }
         if (property_exists($this, $key)) {
             return $this->$key;
         } else {
-            return $this->other_options[$key];
+            return $this->otherOptions[$key];
         }
     }
 
     public function __isset($key)
     {
-        return isset($this->$key) || array_key_exists($key, $this->other_options);
+        return isset($this->$key) || array_key_exists($key, $this->otherOptions);
     }
 }

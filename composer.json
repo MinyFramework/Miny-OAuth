@@ -1,6 +1,6 @@
 {
   "name": "miny/oauth",
-  "description": "The OAuth package of the Miny Framework.",
+  "description": "The OAuth Client package of the Miny Framework.",
   "minimum-stability": "dev",
   "license": "MIT",
   "type": "library",

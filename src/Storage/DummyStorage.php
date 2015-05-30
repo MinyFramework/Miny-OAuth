@@ -15,7 +15,7 @@ namespace Modules\OAuth\Storage;
  *
  * @author Dániel Buga
  */
-class DummyStorage implements iPersistentStorage
+class DummyStorage implements AccessTokenStorageInterface
 {
 
     /**
@@ -33,22 +33,26 @@ class DummyStorage implements iPersistentStorage
         return $this->data;
     }
 
-    public function &__get($key)
+    public function &get($key, $remove = true)
     {
-        return $this->data[$key];
+        $value =& $this->data[$key];
+        if ($remove) {
+            $this->remove($key);
+        }
+        return $value;
     }
 
-    public function __isset($key)
+    public function has($key)
     {
         return isset($this->data[$key]);
     }
 
-    public function __set($key, $value)
+    public function set($key, $value)
     {
         $this->data[$key] = $value;
     }
 
-    public function __unset($key)
+    public function remove($key)
     {
         unset($this->data[$key]);
     }

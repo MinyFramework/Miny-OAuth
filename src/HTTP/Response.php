@@ -10,7 +10,6 @@
 namespace Modules\OAuth\HTTP;
 
 use Exception;
-use Modules\OAuth\Utils;
 use OutOfBoundsException;
 use RuntimeException;
 use UnexpectedValueException;
@@ -26,6 +25,11 @@ if (!function_exists('json_decode')) {
  */
 class Response
 {
+
+    const PROCESS_NONE = 0;
+    const PROCESS_AUTOMATIC = 1;
+    const PROCESS_CUSTOM = 2;
+
     private $rawResponse;
     private $version;
     private $statusCode;
@@ -37,10 +41,6 @@ class Response
      * @var bool
      */
     private $bodyProcessed = false;
-
-    const PROCESS_NONE = 0;
-    const PROCESS_AUTOMATIC = 1;
-    const PROCESS_CUSTOM = 2;
 
     public function __construct($result)
     {
@@ -58,13 +58,16 @@ class Response
         $headers = explode("\r\n", $header_part);
         $status  = array_shift($headers);
         list($version, $code, $reason) = explode(' ', $status, 3);
+
         $this->version        = $version;
         $this->statusCode     = $code;
         $this->responseReason = $reason;
         $this->headers        = [];
+
         foreach ($headers as $header) {
             $header = strtolower($header);
             list($name, $info) = explode(':', $header, 2);
+
             if (!isset($this->headers[$name])) {
                 $this->headers[$name] = trim($info);
             } else {
@@ -85,14 +88,8 @@ class Response
         switch ($type) {
             case 'text/javascript':
             case 'application/json':
-                $obj = json_decode($this->body);
-                switch (gettype($obj)) {
-                    case 'object':
-                    case 'array':
-                        return Utils::convertObjectToArray($obj);
-                    default:
-                        throw new UnexpectedValueException('Invalid JSON response.');
-                }
+                return json_decode($this->body, true);
+
             case 'application/x-www-form-urlencoded':
             case 'text/plain':
             case 'text/html':
@@ -100,29 +97,32 @@ class Response
                 parse_str($this->body, $response);
 
                 return $response;
+
             default:
                 return $this->body;
         }
     }
 
-    public function processBody($process_type = self::PROCESS_AUTOMATIC, $callback = null)
+    public function processBody($processType = self::PROCESS_AUTOMATIC, callable $callback = null)
     {
         if (!isset($this->body)) {
             return ''; //nothing to process
         }
         if (!$this->bodyProcessed) {
-            switch ($process_type) {
+            switch ($processType) {
                 case self::PROCESS_NONE:
                     break;
+
                 case self::PROCESS_AUTOMATIC:
                     $this->body = $this->processResponseByContentType();
                     break;
+
                 case self::PROCESS_CUSTOM:
-                    $this->body = call_user_func($callback, $this->body, $this);
+                    $this->body = $callback($this);
                     break;
+
                 default:
-                    $message = sprintf('Unknown processing type: "%s"', $process_type);
-                    throw new UnexpectedValueException($message);
+                    throw new \UnexpectedValueException("Unknown processing type: \"{$processType}\"");
             }
             $this->bodyProcessed = true;
         }
@@ -144,10 +144,10 @@ class Response
     {
         if (!is_string($key)) {
             $type = gettype($key);
-            throw new UnexpectedValueException("The key must be a string. {$type} given.");
+            throw new \UnexpectedValueException("The key must be a string. {$type} given.");
         }
         if (!isset($this->$key)) {
-            throw new RuntimeException("{$key} is not set.");
+            throw new \RuntimeException("{$key} is not set.");
         }
 
         return $this->$key;
@@ -164,7 +164,7 @@ class Response
     {
         $header = strtolower($header);
         if (!isset($this->headers[$header])) {
-            throw new OutOfBoundsException("Header not set: {$header}");
+            throw new \OutOfBoundsException("Header not set: {$header}");
         }
 
         return $this->headers[$header];
