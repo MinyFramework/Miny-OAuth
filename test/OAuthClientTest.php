@@ -32,7 +32,7 @@ class OAuthClientTest extends \PHPUnit_Framework_TestCase
         $descriptor->signatureMethod = SignatureMethodFactory::SIGNATURE_HMAC_SHA1;
 
         $token               = new AccessToken();
-        $this->object        = new OAuth10($descriptor, []);
+        $this->object        = new OAuth10($descriptor, new Request('', []));
         $token->access_token = '239950953-bl66iuLPi2vedrzAGZhetvlGQnxREFa5oc9Le5wg';
         $token->secret       = '1vZJeOoTXi2mcvU1abnbd4sfhEaaKGJEZQtOHZbL8xyRr';
         $this->object->storeAccessToken($token);

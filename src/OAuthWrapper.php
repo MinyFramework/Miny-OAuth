@@ -10,7 +10,7 @@
 namespace Modules\OAuth;
 
 use InvalidArgumentException;
-use Miny\HTTP\Request;
+use Miny\HTTP\Request as MinyRequest;
 use Miny\Log\Log;
 use Modules\OAuth\Exceptions\OAuthException;
 use OutOfBoundsException;
@@ -38,7 +38,7 @@ class OAuthWrapper
     private $clients = [];
 
     /**
-     * @var array
+     * @var Request
      */
     private $request;
 
@@ -48,14 +48,13 @@ class OAuthWrapper
     private $log;
 
     /**
-     * @param Request $request
+     * @param MinyRequest $request
      * @param Log|null $log
      */
-    public function __construct(Request $request, Log $log = null)
+    public function __construct(MinyRequest $request, Log $log = null)
     {
-        $requestArray         = $request->get()->toArray();
-        $requestArray['path'] = $request->getPath();
-        $this->request        = $requestArray;
+        //TODO: decouple from Miny Request object
+        $this->request        = new Request($request->getPath(), $request->get()->toArray());
         $this->log            = $log;
     }
 

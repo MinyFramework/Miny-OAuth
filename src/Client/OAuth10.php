@@ -12,6 +12,7 @@ namespace Modules\OAuth\Client;
 use Modules\OAuth\AccessToken;
 use Modules\OAuth\Exceptions;
 use Modules\OAuth\ProviderDescriptor\OAuth10Descriptor;
+use Modules\OAuth\Request;
 use OAuthException;
 
 class OAuth10 extends OAuth10Base
@@ -21,7 +22,7 @@ class OAuth10 extends OAuth10Base
      */
     private $descriptor;
 
-    public function __construct(OAuth10Descriptor $pd, array $request)
+    public function __construct(OAuth10Descriptor $pd, Request $request)
     {
         $this->descriptor = $pd;
         parent::__construct($pd, $request);

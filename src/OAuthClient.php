@@ -22,7 +22,7 @@ use UnexpectedValueException;
 abstract class OAuthClient
 {
     /**
-     * @var array
+     * @var Request
      */
     private $request;
 
@@ -38,9 +38,9 @@ abstract class OAuthClient
 
     /**
      * @param ProviderDescriptor $descriptor
-     * @param array $request
+     * @param Request $request
      */
-    public function __construct(ProviderDescriptor $descriptor, array $request)
+    public function __construct(ProviderDescriptor $descriptor, Request $request)
     {
         $this->request = $request;
         $this->descriptor = $descriptor;
@@ -55,21 +55,7 @@ abstract class OAuthClient
      */
     protected function getRequestVar($name)
     {
-        static $allowed = [
-            'code',
-            'error',
-            'state',
-            'oauth_token',
-            'oauth_verifier',
-            'denied',
-            'path'
-        ];
-        if (!in_array($name, $allowed)) {
-            throw new UnexpectedValueException("Request variable \"{$name}\" can not be accessed from this scope.");
-        }
-        //$this->log('Accessing %s request parameter', $name);
-
-        return isset($this->request[$name]) ? $this->request[$name] : null;
+        return $this->request->get($name);
     }
 
     public function getTokenStorage()

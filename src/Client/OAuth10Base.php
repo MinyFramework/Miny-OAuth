@@ -16,6 +16,7 @@ use Modules\OAuth\HTTP\Client;
 use Modules\OAuth\HTTP\Response;
 use Modules\OAuth\OAuthClient;
 use Modules\OAuth\ProviderDescriptor\OAuth10Base as OAuth10BaseDescriptor;
+use Modules\OAuth\Request;
 use Modules\OAuth\SignatureMethod\SignatureMethodFactory;
 use Modules\OAuth\Utils;
 use UnexpectedValueException;
@@ -28,24 +29,22 @@ abstract class OAuth10Base extends OAuthClient
      */
     private $descriptor;
 
-    public function __construct(OAuth10BaseDescriptor $pd, array $request)
+    public function __construct(OAuth10BaseDescriptor $pd, Request $request)
     {
         $this->descriptor = $pd;
         parent::__construct($pd, $request);
     }
 
-    public function signRequest($method, $url, $values, $parameters, $clientSecret, $signatureMethod)
+    public function signRequest($method, $url, $parameters, $clientSecret, $signatureMethod)
     {
         $key         = Utils::encode($clientSecret) . '&';
         $accessToken = $this->getAccessToken();
         if (isset($accessToken)) {
             $key .= Utils::encode($accessToken->secret);
         }
-        //$this->log('Signing method: %s', $this->provider->signature_method);
-        //$this->log('Signature key: %s', $key);
 
         $signatureMethodObject = SignatureMethodFactory::create($signatureMethod);
-        return $signatureMethodObject->sign($key, $url, $method, $values, $parameters);
+        return $signatureMethodObject->sign($key, $url, $method, $parameters);
     }
 
     protected function processFiles($files, $parameters, Client $http)
@@ -136,8 +135,7 @@ abstract class OAuth10Base extends OAuthClient
         $values['oauth_signature'] = $this->signRequest(
             $method,
             $url,
-            $values,
-            $parameters,
+            array_merge($values, $parameters),
             $this->descriptor->clientSecret,
             $this->descriptor->signatureMethod
         );

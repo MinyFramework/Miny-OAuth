@@ -16,6 +16,7 @@ use Modules\OAuth\HTTP\Client;
 use Modules\OAuth\HTTP\Response;
 use Modules\OAuth\OAuthClient;
 use Modules\OAuth\ProviderDescriptor\OAuth20Descriptor;
+use Modules\OAuth\Request;
 use Modules\OAuth\Utils;
 use UnexpectedValueException;
 
@@ -26,7 +27,7 @@ class OAuth20 extends OAuthClient
      */
     private $descriptor;
 
-    public function __construct(OAuth20Descriptor $pd, array $request)
+    public function __construct(OAuth20Descriptor $pd, Request $request)
     {
         $this->descriptor = $pd;
         parent::__construct($pd, $request);

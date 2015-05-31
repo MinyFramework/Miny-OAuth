@@ -4,5 +4,5 @@ namespace Modules\OAuth\SignatureMethod;
 
 interface SignatureMethodInterface {
 
-    public function sign($key, $url, $method, $values, $parameters);
+    public function sign($key, $url, $method, $parameters);
 }
