@@ -30,4 +30,9 @@ class Request
 
         return isset($this->params[$key]) ? $this->params[$key] : null;
     }
+
+    public function isHTTPS()
+    {
+        return isset($_SERVER['HTTPS']) && !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    }
 }

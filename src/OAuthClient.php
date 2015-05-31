@@ -42,7 +42,7 @@ abstract class OAuthClient
      */
     public function __construct(ProviderDescriptor $descriptor, Request $request)
     {
-        $this->request = $request;
+        $this->request    = $request;
         $this->descriptor = $descriptor;
     }
 
@@ -113,7 +113,12 @@ abstract class OAuthClient
      */
     protected function getRedirectUri()
     {
-        return "http://{$_SERVER['HTTP_HOST']}{$this->getRequestVar('path')}";
+        if ($this->request->isHTTPS()) {
+            $proto = 'https';
+        } else {
+            $proto = 'http';
+        }
+        return "{$proto}://{$_SERVER['HTTP_HOST']}{$this->getRequestVar('path')}";
     }
 
     /**
